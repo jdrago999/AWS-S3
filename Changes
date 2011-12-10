@@ -1,0 +1,58 @@
+
+Changelog for perl module AWS::S3
+
+2011-12-09      v0.014
+  - A few minor updates.
+
+2011-11-29      v0.013
+  - AWS::S3::FileIterator now includes properties 'has_prev' and 'has_next' to
+    help in scenarios of building 'prev' and 'next' navigations.
+  - POD is in need of some TLC.
+  - I'll get to it soon...honest.
+
+2011-11-29      v0.012
+  - Some bug fixes.  Upgrade recommended.
+
+2011-11-23      v0.011
+  - Achieved an entry in the Guinness Book of World Records for 
+    "Most Uploads to PAUSE in a Single Day"
+  - Removed another invalid reference to a *::Lite module that doesn't exist
+    on CPAN.
+
+2011-11-23      v0.010
+  - Added missing files to MANIFEST.
+
+2011-11-23      v0.009
+  - Added missing prereq Iterator::Paged
+
+2011-11-23      v0.008
+  - Fixed some POD to clearly show that a scalar reference is always needed
+    to set the contents of a file.
+  - Removed bad reference to a *::Lite module that doesn't exist on CPAN.
+
+2011-11-22      v0.007
+  - Fixed AWS::S3::FileIterator to work properly.
+  - New tests confirm it.
+  - Now require LWP::UserAgent::Determined instead of just LWP::UserAgent.
+  - More POD updates.
+
+2011-11-22      v0.006
+  - Updated some of the POD.
+
+2011-11-21      v0.005
+  - Setting file contents via a coderef now works properly.
+
+2011-11-21      v0.004
+  - I didn't update 'Changes' or 'META.yml' in v0.003 - fixing...
+
+2011-11-21      v0.003
+  - All basic functionality (that I need right now) appears to be working.
+  - Tests rewritten.
+  - Everything appears to be good.
+
+2011-11-20      v0.002
+  - Removed some incorrect POD.
+
+2011-11-20      v0.001
+  - Initial release.
+
