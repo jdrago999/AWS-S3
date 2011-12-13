@@ -28,12 +28,15 @@ sub http_request
   }# end if()
   
   my $req = AWS::S3::HTTPRequest->new(
-    s3      => $s->s3,
-    method  => 'PUT',
-    path    => $s->_uri('') . $s->file->key,
-    content => $$contents,
+    s3          => $s->s3,
+    method      => 'PUT',
+    path        => $s->_uri('') . $s->file->key,
+    content     => $$contents,
+    contenttype => $s->file->contenttype
   )->http_request;
   $req->header('content-length' => length($req->content));
+  $req->header('content-type', $s->file->contenttype )
+    if $s->file->contenttype;
   return $req;
 }# end http_request()
 

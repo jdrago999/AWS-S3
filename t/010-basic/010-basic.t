@@ -4,6 +4,8 @@ use strict;
 use warnings 'all';
 use Test::More 'no_plan';
 use Data::Dumper;
+use FindBin qw/ $Bin /;
+use lib "$Bin/../../lib";
 
 use_ok('AWS::S3');
 
@@ -79,6 +81,11 @@ if( $bucket )
     
     # Now check it:
     is ${$bucket->file($filename)->contents}, $new_contents, "set file.contents works";
+    
+    # use alternative update method
+    $new_contents = 'More new content';
+    $file->update( contents => \$new_contents );
+    is ${$bucket->file($filename)->contents}, $new_contents, "set file.update works";
   };
   
   DELETE_FILE: {
@@ -154,6 +161,34 @@ if( $bucket )
     map {
       ok $bucket->file($_)->delete && ! $bucket->file($_), "bucket.file($_).delete worked"
     } sort keys %info;
+  };
+  
+  
+  # proof content type reading and writing
+  CONTENT_TYPE: {
+    
+    foreach my $ct( qw( text/plain image/jpeg application/zip ) ) {
+      
+      # write file with specific content type
+      ( my $ct_name = $ct ) =~ s#/#-#;
+      ok( $bucket->add_file(
+        key         => "$ct_name.dat",
+        contents    => \( 'This is '. $ct ),
+        contenttype => $ct
+      ), "Put file with content type $ct" );
+      
+      # read file
+      my $ct_file = $bucket->file( "$ct_name.dat" );
+      ok( $ct_file && $ct_file->contenttype eq $ct, 'Content type '. $ct. ' read' );
+      
+      # change content type
+      $ct_file->update( contenttype => 'text/csv' );
+      $ct_file = $bucket->file( "$ct_name.dat" );
+      ok( $ct_file && $ct_file->contenttype eq 'text/csv', 'Content type '. $ct. ' changed to text/csv' );
+      
+      # remove file
+      $ct_file->delete();
+    }
   };
   
   # Cleanup:

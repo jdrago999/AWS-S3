@@ -236,11 +236,12 @@ sub file
   
   my $res = $parser->response;
   return AWS::S3::File->new(
-    bucket        => $s,
-    key           => $key,
-    size          => $res->header('content-length'),
-    etag          => $res->header('etag'),
-    lastmodified  => $res->header('last-modified'),
+    bucket       => $s,
+    key          => $key,
+    size         => $res->header('content-length'),
+    contenttype  => $res->header('content-type') || 'application/octet-stream',
+    etag         => $res->header('etag'),
+    lastmodified => $res->header('last-modified'),
   );
 }# end file()
 
