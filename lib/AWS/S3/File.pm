@@ -49,6 +49,12 @@ has 'lastmodified'  => (
   required  => 0,
 );
 
+has 'contenttype'  => (
+  is        => 'rw',
+  isa       => 'Str',
+  required  => 0,
+);
+
 subtype 'AWS::S3::FileContents' => as 'CodeRef';
 coerce 'AWS::S3::FileContents' =>
   from  'ScalarRef',
@@ -62,7 +68,6 @@ has 'contents' => (
   coerce    => 1,
   default   => \&_get_contents,
 );
-
 
 after 'contents' => sub {
   my ($s, $new_value) = @_;
@@ -81,6 +86,20 @@ sub BUILD
   $etag =~ s{"$}{};
   $s->{etag} = $etag;
 }# end BUILD()
+
+sub update
+{
+  my $s = shift;
+  my %args = @_;
+  my @args_ok = grep {
+    /^content(?:s|type)$/
+  } keys %args;
+  if ( @args_ok ) {
+    $s->{ $_ } = $args{ $_ } for @args_ok;
+    $s->_set_contents();
+  }
+  return ;
+}# end update()
 
 
 sub _get_contents
@@ -177,6 +196,12 @@ AWS::S3::File - A single file in Amazon S3
     return \$new_contents;
   });
   
+  # Alternative update
+  $file->update( 
+    contents => \'New contents', # optional
+    contenttype => 'text/plain'  # optional
+  );
+  
   # Delete the file:
   $file->delete();
 
@@ -254,6 +279,10 @@ Once given a new value, the file is instantly updated on Amazon S3.
 =head2 delete()
 
 Deletes the file from Amazon S3.
+
+=head2 update()
+
+Update contents and/or contenttype of the file.
 
 =head1 SEE ALSO
 

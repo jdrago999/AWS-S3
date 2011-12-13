@@ -56,6 +56,12 @@ has 'metadata' => (
   default   => sub { { } },
 );
 
+has 'contenttype' => (
+  is        => 'ro',
+  required  => 0,
+  isa       => 'Str',
+);
+
 
 # Make the HTTP::Request object:
 sub http_request
@@ -124,6 +130,10 @@ sub _add_auth_header
   {
     $headers->header( Date => time2str(time) );
   }# end if()
+  
+  # add content type
+  $headers->header( 'Content-type' => $self->contenttype )
+    if $self->contenttype;
   
   my $canonical_string = $self->_canonical_string( $method, $path, $headers );
   my $encoded_canonical = $self->_encode( $aws_secret_access_key, $canonical_string );
