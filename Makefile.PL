@@ -24,6 +24,10 @@ requires      'URI::Escape'                 => '0';
 requires      'Digest::HMAC_SHA1'           => '0';
 requires      'Iterator::Paged'             => '0';
 
+resources(
+  'repository'  => 'https://github.com/jdrago999/AWS-S3'
+);
+
 
 tests_recursive();
 WriteAll();

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               AWS-S3
-version:            0.013
+version:            0.018
 abstract:           Lightweight interface to Amazon S3 (Simple Storage Service)
 author:
     - John Drago <jdrago_999@yahoo.com>
@@ -10,7 +10,7 @@ test_requires:
     Test::More:       0
 requires:
     Carp:                       0
-    Class::Load                 0
+    Class::Load:                0
     Iterator::Paged:            1.001
     XML::LibXML:                0
     XML::LibXML::XPathContext:  0
@@ -20,12 +20,13 @@ requires:
     URI::Escape:                0
     VSO:                        0.012
     Iterator::Paged:            0
-recommends:
 no_index:
     directory:
         - t
         - inc
 generated_by:       Hand
+resources:
+    repository: git://github.com/jdrago999/AWS-S3.git
 meta-spec:
     url:      http://module-build.sourceforge.net/META-spec-v1.4.html
     version:  1.4
