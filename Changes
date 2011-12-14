@@ -1,6 +1,10 @@
 
 Changelog for perl module AWS::S3
 
+2011-12-14      v0.019
+  - Bucket's S3 was a weak ref, which caused problems sometimes.  Not anymore...
+    we'll see if that fixes it.
+
 2011-12-13      v0.018
   - Thanks to ukautz++ (Ulrich Kautz) for adding the ability to set the content-type
     of files stored in S3.

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               AWS-S3
-version:            0.018
+version:            0.019
 abstract:           Lightweight interface to Amazon S3 (Simple Storage Service)
 author:
     - John Drago <jdrago_999@yahoo.com>
@@ -27,6 +27,7 @@ no_index:
 generated_by:       Hand
 resources:
     repository: git://github.com/jdrago999/AWS-S3.git
+    homepage:  https://github.com/jdrago999/AWS-S3
 meta-spec:
     url:      http://module-build.sourceforge.net/META-spec-v1.4.html
     version:  1.4

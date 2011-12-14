@@ -12,7 +12,6 @@ has 's3'  => (
   is        => 'ro',
   isa       => 'AWS::S3',
   required  => 1,
-  weak_ref  => 1,
 );
 
 has 'name'  => (
