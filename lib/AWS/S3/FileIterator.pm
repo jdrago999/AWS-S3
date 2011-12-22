@@ -136,7 +136,7 @@ sub _fetch
   my %params = ();
   $params{marker} = $s->{marker} if $s->{marker};
   $params{prefix} = $s->{prefix} if $s->{prefix};
-  $params{max_keys} = 100;
+  $params{max_keys} = 1000;
   $params{delimiter} = $s->{delimiter} if $s->{delimiter};
   
   my $type = 'ListBucket';
