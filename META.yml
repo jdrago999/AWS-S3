@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               AWS-S3
-version:            0.019
+version:            0.020
 abstract:           Lightweight interface to Amazon S3 (Simple Storage Service)
 author:
     - John Drago <jdrago_999@yahoo.com>
