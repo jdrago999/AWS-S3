@@ -15,7 +15,7 @@ has 'bucket' => (
   is        => 'ro',
   isa       => 'AWS::S3::Bucket',
   required  => 1,
-  weak_ref  => 1,
+  weak_ref  => 0,
 );
 
 has 'size'  => (
@@ -53,12 +53,31 @@ has 'contenttype'  => (
   is        => 'rw',
   isa       => 'Str',
   required  => 0,
+  default   => sub { 'binary/octet-stream' }
+);
+
+has 'is_encrypted'  => (
+  is        => 'rw',
+  isa       => 'Bool',
+  required  => 1,
+  lazy      => 1,
+  default   => sub {
+    my $s = shift;
+
+    my $type = 'GetFileInfo';
+    my $req = $s->bucket->s3->request($type,
+      bucket  => $s->bucket->name,
+      key     => $s->key,
+    );
+    
+    return $req->request->response->header('x-amz-server-side-encryption') ? 1 : 0;
+  },
 );
 
 subtype 'AWS::S3::FileContents' => as 'CodeRef';
 coerce 'AWS::S3::FileContents' =>
   from  'ScalarRef',
-  via   { my $val = $_; return sub { \$val } };
+  via   { my $val = $_; return sub { $val } };
 
 has 'contents' => (
   is        => 'rw',
@@ -112,7 +131,7 @@ sub _get_contents
     key     => $s->key,
   );
   
-  return \$s->bucket->s3->ua->request( $req )->decoded_content;
+  return \$req->request->response->decoded_content;
 }# end contents()
 
 
@@ -121,24 +140,24 @@ sub _set_contents
   my ($s, $ref) = @_;
   
   my $type = 'SetFileContents';
-  my $req = $s->bucket->s3->request($type,
-    file    => $s,
-    bucket  => $s->bucket->name,
-  );
-  my $parser = AWS::S3::ResponseParser->new(
-    type            => $type,
-    response        => $s->bucket->s3->ua->request( $req ),
-    expect_nothing  => 1,
-  );
-  (my $etag = $parser->response->header('etag')) =~ s{^"}{};
+  my %args = ( );
+  my $response = $s->bucket->s3->request( $type,
+    bucket                  => $s->bucket->name,
+    file                    => $s,
+    contents                => $ref,
+    content_type            => $s->contenttype,
+    server_side_encryption  => $s->is_encrypted ? 'AES256' : undef,
+  )->request();
+  
+  (my $etag = $response->response->header('etag')) =~ s{^"}{};
   $etag =~ s{"$}{};
   $s->{etag} = $etag;
   
-  if( my $msg = $parser->friendly_error() )
+  if( my $msg = $response->friendly_error() )
   {
     die $msg;
   }# end if()
-}# end set_contents()
+}# end _set_contents()
 
 
 sub delete
@@ -150,13 +169,9 @@ sub delete
     bucket  => $s->bucket->name,
     key     => $s->key,
   );
-  my $parser = AWS::S3::ResponseParser->new(
-    type            => $type,
-    response        => $s->bucket->s3->ua->request( $req ),
-    expect_nothing  => 1,
-  );
+  my $response = $req->request();
   
-  if( my $msg = $parser->friendly_error() )
+  if( my $msg = $response->friendly_error() )
   {
     die $msg;
   }# end if()

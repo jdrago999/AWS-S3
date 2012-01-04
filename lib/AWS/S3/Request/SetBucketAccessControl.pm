@@ -1,60 +1,79 @@
 
+
 package 
 AWS::S3::Request::SetBucketAccessControl;
 
 use VSO;
-use AWS::S3::HTTPRequest;
+use AWS::S3::Signer;
 
 extends 'AWS::S3::Request';
 
+has 'bucket' => (
+  is        => 'ro',
+  isa       => 'Str',
+  required  => 1,
+);
+
 has 'acl_short' => (
   is        => 'ro',
-  isa       => 'Maybe[Str]',
+  isa       => 'Str',
   required  => 0,
-  where     => sub {
-    return 1 unless defined($_);
-    m{^(?:private|public-read|public-read-write|authenticated-read)$}
-  }
 );
 
 has 'acl_xml' => (
   is        => 'ro',
-  isa       => 'Maybe[Str]',
+  isa       => 'Str',
   required  => 0,
-  where     => sub {
-    return 1 unless defined($_);
-    m{^\s*<.+>\s*$}s
-  }
 );
 
 
-sub http_request
+sub request
 {
   my $s = shift;
-
-  unless( $s->acl_xml || $s->acl_short )
+  
+  if( $s->acl_short )
   {
-    die "need either acl_xml or acl_short";
-  }# end unless()
-
-  if( $s->acl_xml && $s->acl_short )
+    my $signer = AWS::S3::Signer->new(
+      s3            => $s->s3,
+      method        => 'PUT',
+      uri           => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/?acl',
+      headers       => [
+        'x-amz-acl' => $s->acl_short
+      ]
+    );
+    return $s->_send_request( $signer->method => $signer->uri => {
+      Authorization => $signer->auth_header,
+      Date          => $signer->date,
+      'x-amz-acl'   => $s->acl_short
+    }, $s->acl_xml);
+  }
+  elsif( $s->acl_xml )
   {
-    die "can not provide both acl_xml and acl_short";
+    my $signer = AWS::S3::Signer->new(
+      s3            => $s->s3,
+      method        => 'PUT',
+      uri           => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/?acl',
+      content       => \$s->acl_xml,
+      'content-type'  => 'text/xml',
+    );
+    return $s->_send_request( $signer->method => $signer->uri => {
+      Authorization => $signer->auth_header,
+      Date          => $signer->date,
+    }, $s->acl_xml);
   }# end if()
+}# end request()
 
-  my $headers = ( $s->acl_short )
-      ? { 'x-amz-acl' => $s->acl_short }
-      : {};
-  my $xml = $s->acl_xml || '';
-
-  return AWS::S3::HTTPRequest->new(
-    s3      => $s->s3,
-    method  => 'PUT',
-    path    => $s->_uri('') . '?acl',
-    headers => $headers,
-    content => $xml,
-  )->http_request;
+sub parse_response
+{
+  my ($s, $res) = @_;
+  
+  AWS::S3::ResponseParser->new(
+    response        => $res,
+    expect_nothing  => 1,
+    type            => $s->type,
+  );
 }# end http_request()
 
 1;# return true:
+
 

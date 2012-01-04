@@ -1,11 +1,18 @@
 
-package 
+package
 AWS::S3::Request::SetFileContents;
 
 use VSO;
-use AWS::S3::HTTPRequest;
+use AWS::S3::Signer;
+use AWS::S3::ResponseParser;
 
 extends 'AWS::S3::Request';
+
+has 'bucket' => (
+  is        => 'ro',
+  isa       => 'Str',
+  required  => 1,
+);
 
 has 'file' => (
   is        => 'ro',
@@ -13,7 +20,15 @@ has 'file' => (
   required  => 1,
 );
 
-sub http_request
+has 'content_type' => (
+  is        => 'ro',
+  isa       => 'Str',
+  required  => 1,
+  lazy      => 1,
+  default   => sub { 'binary/octet-stream' },
+);
+
+sub request
 {
   my $s = shift;
   
@@ -27,17 +42,33 @@ sub http_request
     $contents = $s->file->contents;
   }# end if()
   
-  my $req = AWS::S3::HTTPRequest->new(
-    s3          => $s->s3,
-    method      => 'PUT',
-    path        => $s->_uri('') . $s->file->key,
-    content     => $$contents,
-    contenttype => $s->file->contenttype
-  )->http_request;
-  $req->header('content-length' => length($req->content));
-  $req->header('content-type', $s->file->contenttype )
-    if $s->file->contenttype;
-  return $req;
+  my %other_args = ( );
+  $other_args{'x-amz-server-side-encryption'} = 'AES256' if $s->file->is_encrypted;
+  
+  my $signer = AWS::S3::Signer->new(
+    s3            => $s->s3,
+    method        => 'PUT',
+    uri           => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/' . $s->file->key,
+    content_type  => $s->content_type,
+    content       => $contents,
+  );
+  $s->_send_request( $signer->method => $signer->uri => {
+    Authorization => $signer->auth_header,
+    Date          => $signer->date,
+    'content-type'  => $s->content_type,
+    'content-md5' => $signer->content_md5,
+  }, $$contents);
+}# end request()
+
+sub parse_response
+{
+  my ($s, $res) = @_;
+  
+  AWS::S3::ResponseParser->new(
+    response        => $res,
+    expect_nothing  => 0,
+    type            => $s->type,
+  );
 }# end http_request()
 
 1;# return true:

@@ -1,6 +1,9 @@
 
 Changelog for perl module AWS::S3
 
+2011-12-31      v0.021
+  - File's S3 was a weak ref, which caused problems.  No longer...
+
 2011-12-21      v0.020
   - Updated to be compatible with VSO 0.21
 

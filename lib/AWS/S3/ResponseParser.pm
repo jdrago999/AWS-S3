@@ -8,7 +8,7 @@ use XML::LibXML::XPathContext;
 
 has 'expect_nothing' => (
   is        => 'ro',
-  isa       => 'Int',
+  isa       => 'Bool',
   required  => 1,
   default   => sub { 0 }
 );
@@ -56,6 +56,7 @@ has 'friendly_error' => (
   required  => 0,
   default   => sub {
     my $s = shift;
+
     return unless $s->error_code || $s->error_message;
     $s->type . " call had errors: [" . $s->error_code . "] " . $s->error_message;
   }

@@ -37,7 +37,7 @@ has 'acl' => (
 );
 
 has 'location_constraint' => (
-  is        => 'rw',
+  is        => 'ro',
   isa       => 'Str',
   required  => 0,
   lazy      => 1,
@@ -98,20 +98,16 @@ sub _set_acl
     %acl,
     bucket  => $s->name,
   );
-  my $parser = AWS::S3::ResponseParser->new(
-    type            => $type,
-    response        => $s->s3->ua->request( $req ),
-    expect_nothing  => 1,
-  );
+  my $response = $req->request();
   
-  return if $parser->response->code == 404;
+  return if $response->response->code == 404;
   
-  if( my $msg = $parser->friendly_error() )
+  if( my $msg = $response->friendly_error() )
   {
     die $msg;
   }# end if()
   
-  return $parser->response->decoded_content;
+  return $response->response->decoded_content;
 }# end _set_acl()
 
 
@@ -124,42 +120,14 @@ sub _get_acl
 }# end _get_acl()
 
 
-after 'location_constraint' => sub {
-  my ($s, $new_value) = @_;
-  $s->_set_location_constraint( $new_value );
-};
-
-
-sub _set_location_constraint
-{
-  my ($s, $loc) = @_;
-  
-  my $type = 'SetBucketLocationConstraint';
-  my $req = $s->s3->request($type,
-    bucket    => $s->name,
-    location  => $loc,
-  );
-  my $parser = AWS::S3::ResponseParser->new(
-    type            => $type,
-    response        => $s->s3->ua->request( $req ),
-    expect_nothing  => 1,
-  );
-  
-  if( my $msg = $parser->friendly_error() )
-  {
-    die $msg unless $parser->error_code eq 'BucketAlreadyOwnedByYou';
-  }# end if()
-  
-  return 1;
-}# end _set_location_constraint()
-
-
 sub _get_location_constraint
 {
   my $s = shift;
   
   my $type = 'GetBucketLocationConstraint';
-  my $constraint = $s->_get_property( $type )->xpc->findvalue('//s3:LocationConstraint');
+  my $response = $s->_get_property( $type );
+
+  my $constraint = $response->xpc->findvalue('//s3:LocationConstraint');
   if( defined $constraint && $constraint eq '' )
   {
     return;
@@ -176,10 +144,29 @@ sub _get_policy
   my $s = shift;
   
   my $type = 'GetBucketPolicy';
-  return $s->_get_property( $type, is_raw => 1 )->response->decoded_content();
+  my $req = $s->s3->request($type,
+    bucket  => $s->name,
+  );
+  my $response = $req->request();
+
+  eval { $response->_parse_errors };
+  if( my $msg = $response->friendly_error() )
+  {
+    if( $response->error_code eq 'NoSuchBucketPolicy' )
+    {
+      return '';
+    }
+    else
+    {
+      die $msg;
+    }# end if()
+  }# end if()
+  
+  return $response->response->decoded_content();
 }# end _get_policy()
 
 
+# XXX: Not tested yet.
 sub _set_policy
 {
   my ($s, $policy) = @_;
@@ -189,20 +176,18 @@ sub _set_policy
     bucket  => $s->name,
     policy  => $policy,
   );
-  my $parser = AWS::S3::ResponseParser->new(
-    type      => $type,
-    response  => $s->s3->ua->request( $req ),
-  );
+  my $response = $req->request();
   
-  if( my $msg = $parser->friendly_error() )
+  if( my $msg = $response->friendly_error() )
   {
     die $msg;
   }# end if()
   
-  return $parser->response->decoded_content();
+  return $response->response->decoded_content();
 }# end _set_policy()
 
 
+# XXX: Not working.
 sub enable_cloudfront_domain
 {
   my ($s, $cloudfront) = @_;
@@ -235,12 +220,13 @@ sub file
   
   my $res = $parser->response;
   return AWS::S3::File->new(
-    bucket       => $s,
-    key          => $key,
-    size         => $res->header('content-length'),
-    contenttype  => $res->header('content-type') || 'application/octet-stream',
-    etag         => $res->header('etag'),
-    lastmodified => $res->header('last-modified'),
+    bucket        => $s,
+    key           => $key,
+    size          => $res->header('content-length'),
+    contenttype   => $res->header('content-type') || 'application/octet-stream',
+    etag          => $res->header('etag'),
+    lastmodified  => $res->header('last-modified'),
+    is_encrypted  => ($res->header('x-amz-server-side-encryption') || '') eq 'AES256' ? 1 : 0,
   );
 }# end file()
 
@@ -254,6 +240,7 @@ sub add_file
     my $str = $args{contents}->();
     $args{contents} = $str;
   }# end if()
+  
   my $file = AWS::S3::File->new(
     size    => length(${$args{contents}}),
     %args,
@@ -273,19 +260,37 @@ sub delete
   my $req = $s->s3->request($type,
     bucket  => $s->name,
   );
-  my $parser = AWS::S3::ResponseParser->new(
-    type            => $type,
-    response        => $s->s3->ua->request( $req ),
-    expect_nothing  => 1,
-  );
+  my $response = $req->request();
   
-  if( my $msg = $parser->friendly_error() )
+  if( my $msg = $response->friendly_error() )
   {
     die $msg;
   }# end if()
   
   return 1;
 }# end delete()
+
+
+# Working as of v0.023
+sub delete_multi
+{
+  my ($s, @keys) = @_;
+  
+  my $type = 'DeleteMulti';
+  
+  my $req = $s->s3->request($type,
+    bucket  => $s->name,
+    keys    => \@keys,
+  );
+  my $response = $req->request();
+  
+  if( my $msg = $response->friendly_error() )
+  {
+    die $msg;
+  }# end if()
+  
+  return 1;
+}# end delete_multi()
 
 
 sub _get_property
@@ -296,61 +301,18 @@ sub _get_property
     bucket  => $s->name,
     %args,
   );
-  my $parser = AWS::S3::ResponseParser->new(
-    type      => $type,
-    response  => $args{is_raw} ? $s->_raw_response( $req ) : $s->s3->ua->request( $req ),
-  );
+  my $response = $req->request();
   
-  return if $parser->response->code == 404;
+  return if $response->response->code == 404;
   
-  if( my $msg = $parser->friendly_error() )
+  if( my $msg = $response->friendly_error() )
   {
     die $msg;
   }# end if()
   
-  return $parser;
+  return $response;
 }# end _get_property()
 
-
-sub _raw_response
-{
-  my ($s, $http_req) = @_;
-  
-  my ($host, $uri) = $http_req->uri =~ m{://(.+?)/(.+)$};
-  unless( $host && $uri )
-  {
-    ($host) = $http_req->uri =~ m{://(.+?)/?$};
-    $uri = '';
-  }# end unless()
-  my $sock = IO::Socket::INET->new(
-    PeerAddr  => $host,
-    PeerPort  => 80, 
-    Proto     => 'tcp',
-  ) or die "Could not create socket: $!";
-
-  my $req = <<"REQ";
-@{[ $http_req->method ]} $uri HTTP/1.1
-Host: $host
-Date: @{[ $http_req->header('Date') ]}
-Authorization: @{[ $http_req->header('Authorization') ]}
-
-
-REQ
-  print $sock $req, $http_req->content;
-
-  my @parts = ( );
-  while( <$sock> )
-  {
-    $_ =~ s{^\s+}{};
-    $_ =~ s{\s+$}{};
-    last if $_ eq '0';
-    push @parts, $_;
-  }# end while()
-
-  close($sock);
-  
-  return HTTP::Response->parse( join "\n", @parts );  
-}# end _raw_response()
 
 1;# return true:
 

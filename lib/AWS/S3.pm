@@ -1,10 +1,11 @@
 
 package AWS::S3;
 
-use VSO 0.021;
+use VSO 0.022;
 use Carp 'confess';
 use LWP::UserAgent::Determined;
 use HTTP::Response;
+use HTTP::Request::Common;
 use IO::Socket::INET;
 use Class::Load 'load_class';
 
@@ -13,7 +14,7 @@ use AWS::S3::Owner;
 use AWS::S3::Bucket;
 
 
-our $VERSION = '0.020';
+our $VERSION = '0.022';
 
 has 'access_key_id' => (
   is    => 'ro'
@@ -43,27 +44,18 @@ sub request
   
   my $class = "AWS::S3::Request::$type";
   load_class($class);
-  return $class->new( s3 => $s, %args )->http_request;
+  return $class->new( %args, s3 => $s, type => $type );
 }# end request()
 
 
 sub owner
 {
-  my ($s) = @_;
+  my $s = shift;
   
   my $type = 'ListAllMyBuckets';
-  my $req = $s->request( $type,
-    bucket  => '',
-  );
-  
-  my $parser = AWS::S3::ResponseParser->new(
-    response        => $s->ua->request( $req ),
-    type            => $type,
-    expect_nothing  => 0,
-  );
-  
-  my $xpc = $parser->xpc;
-  
+  my $request = $s->request( $type );
+  my $response = $request->request();
+  my $xpc = $response->xpc;
   return AWS::S3::Owner->new(
     id            => $xpc->findvalue('//s3:Owner/s3:ID'),
     display_name  => $xpc->findvalue('//s3:Owner/s3:DisplayName'),
@@ -76,17 +68,10 @@ sub buckets
   my ($s) = @_;
   
   my $type = 'ListAllMyBuckets';
-  my $req = $s->request( $type,
-    bucket  => '',
-  );
+  my $request = $s->request( $type );
+  my $response = $request->request( );
   
-  my $parser = AWS::S3::ResponseParser->new(
-    response        => $s->ua->request( $req ),
-    type            => $type,
-    expect_nothing  => 0,
-  );
-  
-  my $xpc = $parser->xpc;
+  my $xpc = $response->xpc;
   my @buckets = ( );
   foreach my $node ( $xpc->findnodes('.//s3:Bucket') )
   {
@@ -116,58 +101,16 @@ sub add_bucket
   my ($s, %args) = @_;
   
   my $type = 'CreateBucket';
-  my $req = $s->request( $type, bucket => $args{name} );
+  my $request = $s->request( $type, bucket => $args{name}, location => $args{location} );
+  my $response = $request->request( );
   
-  my $parser = AWS::S3::ResponseParser->new(
-    response        => $s->_raw_response( $req ),
-    type            => $type,
-    expect_nothing  => 1,
-  );
-  
-  if( my $msg = $parser->friendly_error() )
+  if( my $msg = $response->friendly_error() )
   {
     die $msg;
   }# end if()
   
   return $s->bucket( $args{name} );
 }# end add_bucket()
-
-
-sub _raw_response
-{
-  my ($s, $http_req) = @_;
-  
-  my ($host, $uri) = $http_req->uri =~ m{://(.+?)(/.?)$};
-  my $sock = IO::Socket::INET->new(
-    PeerAddr  => $host,
-    PeerPort  => 80, 
-    Proto     => 'tcp',
-  ) or die "Could not create socket: $!";
-
-  my $req = <<"REQ";
-@{[ $http_req->method ]} $uri HTTP/1.1
-Host: $host
-Date: @{[ $http_req->header('Date') ]}
-Authorization: @{[ $http_req->header('Authorization') ]}
-
-
-REQ
-  print $sock $req, $http_req->content;
-
-  my @parts = ( );
-  while( <$sock> )
-  {
-    $_ =~ s{^\s+}{};
-    $_ =~ s{\s+$}{};
-    last if $_ eq '0';
-    push @parts, $_;
-    last unless length($_);
-  }# end while()
-
-  close($sock);
-  
-  return HTTP::Response->parse( join "\n", @parts );  
-}# end _raw_response()
 
 
 1;# return true:

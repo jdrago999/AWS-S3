@@ -140,32 +140,30 @@ sub _fetch
   $params{delimiter} = $s->{delimiter} if $s->{delimiter};
   
   my $type = 'ListBucket';
-  my $req = $s->{bucket}->s3->request($type,
+  my $request = $s->{bucket}->s3->request( $type,
     %params,
-    bucket  => $s->{bucket}->name,
+    bucket  => $s->{bucket}->name
   );
-  my $parser = AWS::S3::ResponseParser->new(
-    type      => $type,
-    response  => $s->{bucket}->s3->ua->request( $req ),
-  );
+  my $response = $request->request( );
+
   
-  $s->{has_next} = ($parser->xpc->findvalue('//s3:IsTruncated') || '') eq 'true' ? 1 : 0;
+  $s->{has_next} = ($response->xpc->findvalue('//s3:IsTruncated') || '') eq 'true' ? 1 : 0;
 
   my @files = ( );
-  foreach my $node ( $parser->xpc->findnodes('//s3:Contents') )
+  foreach my $node ( $response->xpc->findnodes('//s3:Contents') )
   {
-    my ($owner_node) = $parser->xpc->findnodes('.//s3:Owner', $node);
+    my ($owner_node) = $response->xpc->findnodes('.//s3:Owner', $node);
     my $owner = {
-      id            => $parser->xpc->findvalue('.//s3:ID', $owner_node),
-      display_name  => $parser->xpc->findvalue('.//s3:DisplayName', $owner_node)
+      id            => $response->xpc->findvalue('.//s3:ID', $owner_node),
+      display_name  => $response->xpc->findvalue('.//s3:DisplayName', $owner_node)
     };
-    my $etag = $parser->xpc->findvalue('.//s3:ETag', $node);
+    my $etag = $response->xpc->findvalue('.//s3:ETag', $node);
     push @files, {
       bucket        => $s->{bucket},
-      key           => $parser->xpc->findvalue('.//s3:Key', $node),
-      lastmodified  => $parser->xpc->findvalue('.//s3:LastModified', $node),
-      etag          => $parser->xpc->findvalue('.//s3:ETag', $node),
-      size          => $parser->xpc->findvalue('.//s3:Size', $node),
+      key           => $response->xpc->findvalue('.//s3:Key', $node),
+      lastmodified  => $response->xpc->findvalue('.//s3:LastModified', $node),
+      etag          => $response->xpc->findvalue('.//s3:ETag', $node),
+      size          => $response->xpc->findvalue('.//s3:Size', $node),
       owner         => $owner,
     };
   }# end foreach()
