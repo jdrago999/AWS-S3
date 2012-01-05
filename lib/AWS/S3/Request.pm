@@ -30,8 +30,6 @@ has 'protocol' => (
 sub _send_request
 {
   my ($s, $method, $uri, $headers, $content) = @_;
-  use LWP::UserAgent;
-  use HTTP::Request::Common;
   
   my $req = HTTP::Request->new( $method => $uri );
   $req->content( $content ) if $content;

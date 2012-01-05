@@ -178,6 +178,8 @@ sub _set_policy
   );
   my $response = $req->request();
   
+#warn "NewPolicy:($policy).......\n";
+#warn $response->response->as_string;
   if( my $msg = $response->friendly_error() )
   {
     die $msg;
@@ -187,15 +189,34 @@ sub _set_policy
 }# end _set_policy()
 
 
-# XXX: Not working.
-sub enable_cloudfront_domain
+# XXX: Not tested.
+sub enable_cloudfront_distribution
 {
-  my ($s, $cloudfront) = @_;
+  my ($s, $cloudfront_dist) = @_;
   
-  $cloudfront->isa('AWS::CloudFront')
-    or die "Usage: enable_cloudfront_domain( <AWS::CloudFront object> )";
+  $cloudfront_dist->isa('AWS::CloudFront::Distribution')
+    or die "Usage: enable_cloudfront_distribution( <AWS::CloudFront::Distribution object> )";
   
-}# end enable_cloudfront_domain()
+  my $ident = $cloudfront_dist->cf->create_origin_access_identity(
+    Comment => "Access to s3://" . $s->name,
+  );
+  $s->policy(<<"JSON");
+{
+	"Version":"2008-10-17",
+	"Id":"PolicyForCloudFrontPrivateContent",
+	"Statement":[{
+			"Sid": "Grant a CloudFront Origin Identity access to support private content",
+			"Effect":"Allow",
+			"Principal": {
+			  "CanonicalUser":"@{[ $ident->S3CanonicalUserId ]}"
+			},
+			"Action": "s3:GetObject",
+			"Resource": "arn:aws:s3:::@{[ $s->name ]}/*"
+		}
+	]
+}
+JSON
+}# end enable_cloudfront_distribution()
 
 
 sub files
@@ -276,6 +297,8 @@ sub delete_multi
 {
   my ($s, @keys) = @_;
   
+  die "You can only delete up to 1000 keys at once"
+    if @keys > 1000;
   my $type = 'DeleteMulti';
   
   my $req = $s->s3->request($type,
@@ -358,13 +381,11 @@ String.  Returns XML string.
 
 Read-only.
 
-B<TODO:> Implement setting the ACL properly.
-
 See also L<PUT Bucket ACL|http://docs.amazonwebservices.com/AmazonS3/latest/API/index.html?RESTBucketPUTacl.html>
 
 =head2 location_constraint
 
-String.  Accepts valid location constraint values.
+String.  Read-only.
 
 =over 4
 
@@ -380,7 +401,7 @@ String.  Accepts valid location constraint values.
 
 =back
 
-The default value is 'US'.
+The default value is undef which means 'US'.
 
 See also L<PUT Bucket|http://docs.amazonwebservices.com/AmazonS3/latest/API/index.html?RESTBucketPUT.html>
 
@@ -419,6 +440,26 @@ Use the L<AWS::S3::FileIterator> to page through your results.
 =head2 file( $key )
 
 Finds the file with that C<$key> and returns an L<AWS::S3::File> object for it.
+
+=head2 delete_multi( \@keys )
+
+Given an ArrayRef of the keys you want to delete, C<delete_multi> can only delete
+up to 1000 keys at once.  Empty your buckets for deletion quickly like this:
+
+  my $deleted = 0;
+  my $bucket = $s->bucket( 'foobar' );
+  my $iter = $bucket->files( page_size => 1000, page_number => 1 );
+  while( my @files = $iter->next_page )
+  {
+    $bucket->delete_multi( map { $_->key } @files );
+    $deleted += @files;
+    # Reset to page 1:
+    $iter->page_number( 1 );
+    warn "Deleted $deleted files so far\n";
+  }# end while()
+  
+  # NOW you can delete your bucket (if you want) because it's empty:
+  $bucket->delete;
 
 =head1 SEE ALSO
 

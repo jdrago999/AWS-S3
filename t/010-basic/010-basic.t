@@ -39,6 +39,26 @@ ok my $bucket = $s3->add_bucket( name => $bucket_name, location => 'us-west-1' )
 #exit;
 if( $bucket )
 {
+
+if(0) {
+  # Try cloudfront integration if we've got it:
+  eval { require AWS::CloudFront; require AWS::CloudFront::S3Origin; };
+  die $@ if $@;
+  unless( $@ )
+  {
+    my $cf = AWS::CloudFront->new(
+      access_key_id     => $s3->access_key_id,
+      secret_access_key => $s3->secret_access_key,
+    );
+    my $dist = $cf->add_distribution(
+      Origin  => AWS::CloudFront::S3Origin->new(
+        DNSName => $bucket->name . '.s3.amazonaws.com',
+      )
+    );
+    $bucket->enable_cloudfront_distribution( $dist );
+  }# end unless()
+}
+
   my $acl = $bucket->acl;
   ok $bucket->acl( 'private' ), 'set bucket.acl to private';
   is $acl, $bucket->acl, 'get bucket.acl returns private';

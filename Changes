@@ -1,6 +1,18 @@
 
 Changelog for perl module AWS::S3
 
+2012-01-05      v0.024
+  - Better integration with CloudFront.
+  - More CF-related updates are on the way.
+
+2012-01-04      v0.023
+  - Complete overhaul of the request-signing methodology.  Amazon should not be
+    allowed to design any more public APIs until they learn about this little
+    thing we call "Uniformity"
+
+2012-01-04      v0.022
+  - was never actually released...we skipped from 0.021 to 0.023
+
 2011-12-31      v0.021
   - File's S3 was a weak ref, which caused problems.  No longer...
 

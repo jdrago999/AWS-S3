@@ -3,7 +3,6 @@ package
 AWS::S3::Signer;
 
 use VSO;
-use LWP::UserAgent;
 use HTTP::Request::Common;
 use HTTP::Date 'time2str';
 use MIME::Base64 qw(encode_base64);
@@ -17,7 +16,7 @@ use Digest::MD5 'md5';
 my $METADATA_PREFIX      = 'x-amz-meta-';
 my $AMAZON_HEADER_PREFIX = 'x-amz-';
 
-enum 'HTTPMethod' => [qw( HEAD GET PUT POST DELETE )];
+enum 'AWS::S3::HTTPMethod' => [qw( HEAD GET PUT POST DELETE )];
 
 has 's3' => (
   is        => 'ro',
@@ -27,7 +26,7 @@ has 's3' => (
 
 has 'method' => (
   is        => 'ro',
-  isa       => 'HTTPMethod',
+  isa       => 'AWS::S3::HTTPMethod',
   required  => 1,
 );
 
