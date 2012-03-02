@@ -1,6 +1,22 @@
 
 Changelog for perl module AWS::S3
 
+2012-03-01      v0.028
+  - Fixed: AWS/S3.pm required a higher version of VSO than the Makefile.PL and META.yml.
+  - Strange: Local testing shows $bucket->delete_multi works, but it gives me 
+    some problems in production.
+
+2012-02-24      v0.027
+  - Fixed sporadic error:
+    "Invalid value for AWS::S3::File.size: isn't a Int: [Str] 'contenttype': Must contain only numbers 0-9"
+
+2012-01-30      v0.026
+  - $bucket->file( $missing_file ) was failing silently, causing strange behavior
+    further upstream.  Now it will confess with the http response from S3.
+
+2012-01-12      v0.025
+  - $bucket->delete_multi( @keys ) actually works now.
+
 2012-01-05      v0.024
   - Better integration with CloudFront.
   - More CF-related updates are on the way.

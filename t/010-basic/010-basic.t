@@ -185,9 +185,15 @@ if(0) {
     
     # Delete the files:
     ok($bucket->delete_multi( map { $_ } sort keys %info ), 'bucket.delete_multi(@keys)' );
-    map {
-      ok $bucket->file($_)->delete && ! $bucket->file($_), "bucket.file($_).delete worked"
-    } sort keys %info;
+    
+    # Now make sure that not a single one still exists:
+    foreach( sort keys %info )
+    {
+      ok ! eval {$bucket->file($_)}, "bucket(@{[ $bucket->name ]}).file($_) doesn't exist";
+    }# end foreach()
+#    map {
+#      ok $bucket->file($_)->delete && ! $bucket->file($_), "bucket.file($_).delete worked"
+#    } sort keys %info;
   };
   
   
@@ -234,12 +240,12 @@ sub cleanup
     my $iter = $bucket->files( page_size => 100, page_number => 1 );
     while( my @files = $iter->next_page )
     {
-#$bucket->delete_multi( map { $_->key } @files );
-      foreach my $file ( @files )
-      {
-        warn "\tdelete: ", $file->key, "\n";
-        eval { $file->delete };
-      }# end foreach()
+$bucket->delete_multi( map { $_->key } @files );
+#      foreach my $file ( @files )
+#      {
+#        warn "\tdelete: ", $file->key, "\n";
+#        eval { $file->delete };
+#      }# end foreach()
       $iter->page_number( 1 );
     }# end while()
     eval { $bucket->delete };

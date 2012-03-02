@@ -39,12 +39,14 @@ XML
     method        => 'POST',
     uri           => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/?delete',
     content       => \$xml,
+    content_type  => '',
   );
+  
   $s->_send_request( $signer->method => $signer->uri => {
     Authorization => $signer->auth_header,
     Date          => $signer->date,
     'content-md5' => $signer->content_md5,
-  });
+  }, $xml);
 }# end request()
 
 sub parse_response

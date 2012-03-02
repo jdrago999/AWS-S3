@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               AWS-S3
-version:            0.024
+version:            0.027
 abstract:           Lightweight interface to Amazon S3 (Simple Storage Service)
 author:
     - John Drago <jdrago_999@yahoo.com>
@@ -18,7 +18,7 @@ requires:
     Digest::HMAC_SHA1:          0
     MIME::Base64:               0
     URI::Escape:                0
-    VSO:                        0.022
+    VSO:                        0.024
     Iterator::Paged:            0
 no_index:
     directory:
