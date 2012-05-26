@@ -4,183 +4,177 @@ package AWS::S3::File;
 use VSO;
 use Carp 'confess';
 
-
 has 'key' => (
-  is        => 'ro',
-  isa       => 'Str',
-  required  => 1,
+    is       => 'ro',
+    isa      => 'Str',
+    required => 1,
 );
 
 has 'bucket' => (
-  is        => 'ro',
-  isa       => 'AWS::S3::Bucket',
-  required  => 1,
-  weak_ref  => 0,
+    is       => 'ro',
+    isa      => 'AWS::S3::Bucket',
+    required => 1,
+    weak_ref => 0,
 );
 
-has 'size'  => (
-  is        => 'ro',
-  isa       => 'Int',
-  required  => 0,
+has 'size' => (
+    is       => 'ro',
+    isa      => 'Int',
+    required => 0,
 );
 
-has 'etag'  => (
-  is        => 'ro',
-  isa       => 'Str',
-  required  => 0,
+has 'etag' => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 0,
 );
 
-has 'owner'  => (
-  is        => 'ro',
-  isa       => 'AWS::S3::Owner',
-  required  => 0,
-  weak_ref  => 1,
+has 'owner' => (
+    is       => 'ro',
+    isa      => 'AWS::S3::Owner',
+    required => 0,
+    weak_ref => 1,
 );
 
-has 'storage_class'  => (
-  is        => 'ro',
-  isa       => 'Str',
-  default   => sub{ 'STANDARD' },
-  required  => 1,
+has 'storage_class' => (
+    is       => 'ro',
+    isa      => 'Str',
+    default  => sub { 'STANDARD' },
+    required => 1,
 );
 
-has 'lastmodified'  => (
-  is        => 'ro',
-  isa       => 'Str',
-  required  => 0,
+has 'lastmodified' => (
+    is       => 'ro',
+    isa      => 'Str',
+    required => 0,
 );
 
-has 'content_type'  => (
-  is        => 'rw',
-  isa       => 'Str',
-  required  => 0,
-  default   => sub { 'binary/octet-stream' }
+has 'content_type' => (
+    is       => 'rw',
+    isa      => 'Str',
+    required => 0,
+    default  => sub { 'binary/octet-stream' }
 );
 
-has 'is_encrypted'  => (
-  is        => 'rw',
-  isa       => 'Bool',
-  required  => 1,
-  lazy      => 1,
-  default   => sub {
-    my $s = shift;
+has 'is_encrypted' => (
+    is       => 'rw',
+    isa      => 'Bool',
+    required => 1,
+    lazy     => 1,
+    default  => sub {
+        my $s = shift;
 
-    my $type = 'GetFileInfo';
-    my $req = $s->bucket->s3->request($type,
-      bucket  => $s->bucket->name,
-      key     => $s->key,
-    );
-    
-    return $req->request->response->header('x-amz-server-side-encryption') ? 1 : 0;
-  },
+        my $type = 'GetFileInfo';
+        my $req  = $s->bucket->s3->request(
+            $type,
+            bucket => $s->bucket->name,
+            key    => $s->key,
+        );
+
+        return $req->request->response->header( 'x-amz-server-side-encryption' ) ? 1 : 0;
+    },
 );
 
 subtype 'AWS::S3::FileContents' => as 'CodeRef';
-coerce 'AWS::S3::FileContents' =>
-  from  'ScalarRef',
-  via   { my $val = $_; return sub { $val } };
+coerce
+  'AWS::S3::FileContents' => from 'ScalarRef',
+  via {
+    my $val = $_;
+    return sub { $val }
+  };
 
 has 'contents' => (
-  is        => 'rw',
-  isa       => 'AWS::S3::FileContents',
-  required  => 0,
-  lazy      => 1,
-  coerce    => 1,
-  default   => \&_get_contents,
+    is       => 'rw',
+    isa      => 'AWS::S3::FileContents',
+    required => 0,
+    lazy     => 1,
+    coerce   => 1,
+    default  => \&_get_contents,
 );
 
 after 'contents' => sub {
-  my ($s, $new_value) = @_;
-  return unless defined $new_value;
-  
-  $s->_set_contents( $new_value );
-  $s->{contents} = undef;
+    my ( $s, $new_value ) = @_;
+    return unless defined $new_value;
+
+    $s->_set_contents( $new_value );
+    $s->{contents} = undef;
 };
 
-sub BUILD
-{
-  my $s = shift;
-  
-  return unless $s->etag;
-  (my $etag = $s->etag) =~ s{^"}{};
-  $etag =~ s{"$}{};
-  $s->{etag} = $etag;
-}# end BUILD()
+sub BUILD {
+    my $s = shift;
 
-sub update
-{
-  my $s = shift;
-  my %args = @_;
-  my @args_ok = grep {
-    /^content(?:s|type)$/
-  } keys %args;
-  if ( @args_ok ) {
-    $s->{ $_ } = $args{ $_ } for @args_ok;
-    $s->_set_contents();
-  }
-  return ;
-}# end update()
+    return unless $s->etag;
+    ( my $etag = $s->etag ) =~ s{^"}{};
+    $etag =~ s{"$}{};
+    $s->{etag} = $etag;
+}    # end BUILD()
 
+sub update {
+    my $s       = shift;
+    my %args    = @_;
+    my @args_ok = grep { /^content(?:s|type)$/ } keys %args;
+    if ( @args_ok ) {
+        $s->{$_} = $args{$_} for @args_ok;
+        $s->_set_contents();
+    }
+    return;
+}    # end update()
 
-sub _get_contents
-{
-  my $s = shift;
-  
-  my $type = 'GetFileContents';
-  my $req = $s->bucket->s3->request($type,
-    bucket  => $s->bucket->name,
-    key     => $s->key,
-  );
-  
-  return \$req->request->response->decoded_content;
-}# end contents()
+sub _get_contents {
+    my $s = shift;
 
+    my $type = 'GetFileContents';
+    my $req  = $s->bucket->s3->request(
+        $type,
+        bucket => $s->bucket->name,
+        key    => $s->key,
+    );
 
-sub _set_contents
-{
-  my ($s, $ref) = @_;
-  
-  my $type = 'SetFileContents';
-  my %args = ( );
-  my $response = $s->bucket->s3->request( $type,
-    bucket                  => $s->bucket->name,
-    file                    => $s,
-    contents                => $ref,
-    content_type            => $s->content_type,
-    server_side_encryption  => $s->is_encrypted ? 'AES256' : undef,
-  )->request();
- 
-  (my $etag = $response->response->header('etag')) =~ s{^"}{};
-  $etag =~ s{"$}{};
-  $s->{etag} = $etag;
-  
-  if( my $msg = $response->friendly_error() )
-  {
-    die $msg;
-  }# end if()
-}# end _set_contents()
+    return \$req->request->response->decoded_content;
+}    # end contents()
 
+sub _set_contents {
+    my ( $s, $ref ) = @_;
 
-sub delete
-{
-  my $s = shift;
-  
-  my $type = 'DeleteFile';
-  my $req = $s->bucket->s3->request($type,
-    bucket  => $s->bucket->name,
-    key     => $s->key,
-  );
-  my $response = $req->request();
-  
-  if( my $msg = $response->friendly_error() )
-  {
-    die $msg;
-  }# end if()
-  
-  return 1;
-}# end delete()
+    my $type     = 'SetFileContents';
+    my %args     = ();
+    my $response = $s->bucket->s3->request(
+        $type,
+        bucket                 => $s->bucket->name,
+        file                   => $s,
+        contents               => $ref,
+        content_type           => $s->content_type,
+        server_side_encryption => $s->is_encrypted ? 'AES256' : undef,
+    )->request();
 
-1;# return true:
+    ( my $etag = $response->response->header( 'etag' ) ) =~ s{^"}{};
+    $etag =~ s{"$}{};
+    $s->{etag} = $etag;
+
+    if ( my $msg = $response->friendly_error() ) {
+        die $msg;
+    }    # end if()
+}    # end _set_contents()
+
+sub delete {
+    my $s = shift;
+
+    my $type = 'DeleteFile';
+    my $req  = $s->bucket->s3->request(
+        $type,
+        bucket => $s->bucket->name,
+        key    => $s->key,
+    );
+    my $response = $req->request();
+
+    if ( my $msg = $response->friendly_error() ) {
+        die $msg;
+    }    # end if()
+
+    return 1;
+}    # end delete()
+
+1;   # return true:
 
 =pod
 
@@ -324,5 +318,4 @@ terms as any version of perl itself.
 Copyright John Drago 2011 all rights reserved.
 
 =cut
-
 

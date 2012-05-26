@@ -13,107 +13,90 @@ use AWS::S3::ResponseParser;
 use AWS::S3::Owner;
 use AWS::S3::Bucket;
 
-
 our $VERSION = '0.028';
 
-has 'access_key_id' => (
-  is    => 'ro'
-);
+has 'access_key_id' => ( is => 'ro' );
 
-has 'secret_access_key' => (
-  is    => 'ro'
-);
+has 'secret_access_key' => ( is => 'ro' );
 
 has 'secure' => (
-  is      => 'ro',
-  isa     => 'Int',
-  lazy    => 1,
-  default => sub { 0 },
+    is      => 'ro',
+    isa     => 'Int',
+    lazy    => 1,
+    default => sub { 0 },
 );
 
 has 'ua' => (
-  is      => 'ro',
-  isa     => 'LWP::UserAgent',
-  default => sub { LWP::UserAgent::Determined->new }
+    is      => 'ro',
+    isa     => 'LWP::UserAgent',
+    default => sub { LWP::UserAgent::Determined->new }
 );
 
+sub request {
+    my ( $s, $type, %args ) = @_;
 
-sub request
-{
-  my ($s, $type, %args) = @_;
-  
-  my $class = "AWS::S3::Request::$type";
-  load_class($class);
-  return $class->new( %args, s3 => $s, type => $type );
-}# end request()
+    my $class = "AWS::S3::Request::$type";
+    load_class( $class );
+    return $class->new( %args, s3 => $s, type => $type );
+}    # end request()
 
+sub owner {
+    my $s = shift;
 
-sub owner
-{
-  my $s = shift;
-  
-  my $type = 'ListAllMyBuckets';
-  my $request = $s->request( $type );
-  my $response = $request->request();
-  my $xpc = $response->xpc;
-  return AWS::S3::Owner->new(
-    id            => $xpc->findvalue('//s3:Owner/s3:ID'),
-    display_name  => $xpc->findvalue('//s3:Owner/s3:DisplayName'),
-  );
-}# end owner()
-
-
-sub buckets
-{
-  my ($s) = @_;
-  
-  my $type = 'ListAllMyBuckets';
-  my $request = $s->request( $type );
-  my $response = $request->request( );
-  
-  my $xpc = $response->xpc;
-  my @buckets = ( );
-  foreach my $node ( $xpc->findnodes('.//s3:Bucket') )
-  {
-    push @buckets, AWS::S3::Bucket->new(
-      name          => $xpc->findvalue('.//s3:Name', $node ),
-      creation_date => $xpc->findvalue('.//s3:CreationDate', $node),
-      s3            => $s,
+    my $type     = 'ListAllMyBuckets';
+    my $request  = $s->request( $type );
+    my $response = $request->request();
+    my $xpc      = $response->xpc;
+    return AWS::S3::Owner->new(
+        id           => $xpc->findvalue( '//s3:Owner/s3:ID' ),
+        display_name => $xpc->findvalue( '//s3:Owner/s3:DisplayName' ),
     );
-  }# end foreach()
-  
-  return @buckets;
-}# end buckets()
+}    # end owner()
 
+sub buckets {
+    my ( $s ) = @_;
 
-sub bucket
-{
-  my ($s, $name) = @_;
-  
-  my ($bucket) = grep { $_->name eq $name } $s->buckets
-    or return;
-  $bucket;
-}# end bucket()
+    my $type     = 'ListAllMyBuckets';
+    my $request  = $s->request( $type );
+    my $response = $request->request();
 
+    my $xpc     = $response->xpc;
+    my @buckets = ();
+    foreach my $node ( $xpc->findnodes( './/s3:Bucket' ) ) {
+        push @buckets,
+          AWS::S3::Bucket->new(
+            name          => $xpc->findvalue( './/s3:Name',         $node ),
+            creation_date => $xpc->findvalue( './/s3:CreationDate', $node ),
+            s3            => $s,
+          );
+    }    # end foreach()
 
-sub add_bucket
-{
-  my ($s, %args) = @_;
-  
-  my $type = 'CreateBucket';
-  my $request = $s->request( $type, bucket => $args{name}, location => $args{location} );
-  my $response = $request->request( );
-  
-  if( my $msg = $response->friendly_error() )
-  {
-    die $msg;
-  }# end if()
-  
-  return $s->bucket( $args{name} );
-}# end add_bucket()
+    return @buckets;
+}    # end buckets()
 
+sub bucket {
+    my ( $s, $name ) = @_;
 
-1;# return true:
+    my ( $bucket ) = grep { $_->name eq $name } $s->buckets
+      or return;
+    $bucket;
+}    # end bucket()
+
+sub add_bucket {
+    my ( $s, %args ) = @_;
+
+    my $type     = 'CreateBucket';
+    my $request  = $s->request( $type, bucket => $args{name}, location => $args{location} );
+    my $response = $request->request();
+
+    if ( my $msg = $response->friendly_error() ) {
+        die $msg;
+    }    # end if()
+
+    return $s->bucket( $args{name} );
+}    # end add_bucket()
+
+1;   # return true:
 
 =pod
 

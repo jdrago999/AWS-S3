@@ -8,44 +8,38 @@ use Carp 'confess';
 use AWS::S3::Owner;
 use AWS::S3::File;
 
+sub _init {
+    my ( $s ) = @_;
 
-sub _init
-{
-  my ($s) = @_;
-  
-  foreach(qw( bucket page_size page_number ))
-  {
-    confess "Required argument '$_' was not provided"
-      unless $s->{$_};
-  }# end foreach()
-  
-  $s->{page_number}--;
-  $s->{marker} = '' unless defined($s->{marker});
-  $s->{__fetched_first_page} = 0;
-  $s->{data} = [ ];
-  $s->{pattern} ||= qr(.*);
-}# end _init()
+    foreach ( qw( bucket page_size page_number ) ) {
+        confess "Required argument '$_' was not provided"
+          unless $s->{$_};
+    }    # end foreach()
 
-sub marker    { shift->{marker}     }
-sub pattern   { shift->{pattern}    }
-sub bucket    { shift->{bucket}     }
-sub page_size { shift->{page_size}  }
+    $s->{page_number}--;
+    $s->{marker}               = '' unless defined( $s->{marker} );
+    $s->{__fetched_first_page} = 0;
+    $s->{data}                 = [];
+    $s->{pattern} ||= qr(.*);
+}    # end _init()
 
-sub has_prev
-{
-  my $s = shift;
-  
-  return $s->page_number > 1;
-}# end has_prev()
+sub marker    { shift->{marker} }
+sub pattern   { shift->{pattern} }
+sub bucket    { shift->{bucket} }
+sub page_size { shift->{page_size} }
 
-sub has_next  { shift->{has_next} }
+sub has_prev {
+    my $s = shift;
 
-sub page_number
-{
-  my $s = shift;
-  @_ ? $s->{page_number} = $_[0] - 1 : $s->{page_number}
-}# end page_number()
+    return $s->page_number > 1;
+}    # end has_prev()
 
+sub has_next { shift->{has_next} }
+
+sub page_number {
+    my $s = shift;
+    @_ ? $s->{page_number} = $_[0] - 1 : $s->{page_number};
+}    # end page_number()
 
 # S3 returns files 100 at a time.  If we want more or less than 100, we can't
 # just fetch the next page over and over - that would be inefficient and likely
@@ -64,121 +58,102 @@ sub page_number
 # If the page size is 105 and page number is 3, then we:
 #   - fetch items until our internal 'start' marker is 316-420
 #   - return items 316-420
-sub next_page
-{
-  my $s = shift;
-  
-  # Advance to page X before proceding:
-  if( (!$s->{__fetched_first_page}++) && $s->page_number )
-  {
-    # Advance to $s->page_number
-    my $start_page = $s->page_number;
-    my $to_discard = $start_page * $s->page_size;
-    my $discarded = 0;
-    while( 1 )
-    {
-      my $item = $s->_next
-        or last;
-      $discarded++ if $item->{key} =~ $s->pattern;
-      last if $discarded > $to_discard;
-    }# end while()
-  }# end if()
-  
-  my @chunk = ( );
-  while( my $item = $s->_next() )
-  {
-    next unless $item->{key} =~ $s->pattern;
-    push @chunk, $item;
-    last if @chunk == $s->page_size;
-  }# end while()
-  
-  my @out = map {
-    my $owner = AWS::S3::Owner->new( %{ $_->{owner} } );
-    delete $_->{owner};
-    AWS::S3::File->new( %$_, owner => $owner );
-  } @chunk;
-  
-  $s->{page_number}++;
-  
-  return unless @out;
-  wantarray ? @out : \@out;
-}# end next_page()
+sub next_page {
+    my $s = shift;
 
+    # Advance to page X before proceding:
+    if ( ( !$s->{__fetched_first_page}++ ) && $s->page_number ) {
 
-sub _next
-{
-  my $s = shift;
-  
-  if( my $item = shift(@{$s->{data}}) )
-  {
-    return $item;
-  }
-  else
-  {
-    if( my @chunk = $s->_fetch() )
-    {
-      push @{$s->{data}}, @chunk;
-      return shift(@{$s->{data}});
-    }
-    else
-    {
-      return;
-    }# end if()
-  }# end if()
-}# end _next()
+        # Advance to $s->page_number
+        my $start_page = $s->page_number;
+        my $to_discard = $start_page * $s->page_size;
+        my $discarded  = 0;
+        while ( 1 ) {
+            my $item = $s->_next
+              or last;
+            $discarded++ if $item->{key} =~ $s->pattern;
+            last if $discarded > $to_discard;
+        }    # end while()
+    }    # end if()
 
+    my @chunk = ();
+    while ( my $item = $s->_next() ) {
+        next unless $item->{key} =~ $s->pattern;
+        push @chunk, $item;
+        last if @chunk == $s->page_size;
+    }    # end while()
 
-sub _fetch
-{
-  my ($s) = @_;
+    my @out = map {
+        my $owner = AWS::S3::Owner->new( %{ $_->{owner} } );
+        delete $_->{owner};
+        AWS::S3::File->new( %$_, owner => $owner );
+    } @chunk;
 
-  my $path = $s->{bucket}->name . '/';
-  my %params = ();
-  $params{marker} = $s->{marker} if $s->{marker};
-  $params{prefix} = $s->{prefix} if $s->{prefix};
-  $params{max_keys} = 1000;
-  $params{delimiter} = $s->{delimiter} if $s->{delimiter};
-  
-  my $type = 'ListBucket';
-  my $request = $s->{bucket}->s3->request( $type,
-    %params,
-    bucket  => $s->{bucket}->name
-  );
-  my $response = $request->request( );
+    $s->{page_number}++;
 
-  
-  $s->{has_next} = ($response->xpc->findvalue('//s3:IsTruncated') || '') eq 'true' ? 1 : 0;
+    return unless @out;
+    wantarray ? @out : \@out;
+}    # end next_page()
 
-  my @files = ( );
-  foreach my $node ( $response->xpc->findnodes('//s3:Contents') )
-  {
-    my ($owner_node) = $response->xpc->findnodes('.//s3:Owner', $node);
-    my $owner = {
-      id            => $response->xpc->findvalue('.//s3:ID', $owner_node),
-      display_name  => $response->xpc->findvalue('.//s3:DisplayName', $owner_node)
-    };
-    my $etag = $response->xpc->findvalue('.//s3:ETag', $node);
-    push @files, {
-      bucket        => $s->{bucket},
-      key           => $response->xpc->findvalue('.//s3:Key', $node),
-      lastmodified  => $response->xpc->findvalue('.//s3:LastModified', $node),
-      etag          => $response->xpc->findvalue('.//s3:ETag', $node),
-      size          => $response->xpc->findvalue('.//s3:Size', $node),
-      owner         => $owner,
-    };
-  }# end foreach()
-  
-  if( @files )
-  {
-    $s->{marker} = $files[-1]->{key};
-  }# end if()
-  
-  return unless defined wantarray;
-  @files ? return @files : return;
-}# end _fetch()
+sub _next {
+    my $s = shift;
 
+    if ( my $item = shift( @{ $s->{data} } ) ) {
+        return $item;
+    } else {
+        if ( my @chunk = $s->_fetch() ) {
+            push @{ $s->{data} }, @chunk;
+            return shift( @{ $s->{data} } );
+        } else {
+            return;
+        }    # end if()
+    }    # end if()
+}    # end _next()
 
-1;# return true:
+sub _fetch {
+    my ( $s ) = @_;
+
+    my $path   = $s->{bucket}->name . '/';
+    my %params = ();
+    $params{marker} = $s->{marker} if $s->{marker};
+    $params{prefix} = $s->{prefix} if $s->{prefix};
+    $params{max_keys} = 1000;
+    $params{delimiter} = $s->{delimiter} if $s->{delimiter};
+
+    my $type     = 'ListBucket';
+    my $request  = $s->{bucket}->s3->request( $type, %params, bucket => $s->{bucket}->name );
+    my $response = $request->request();
+
+    $s->{has_next} = ( $response->xpc->findvalue( '//s3:IsTruncated' ) || '' ) eq 'true' ? 1 : 0;
+
+    my @files = ();
+    foreach my $node ( $response->xpc->findnodes( '//s3:Contents' ) ) {
+        my ( $owner_node ) = $response->xpc->findnodes( './/s3:Owner', $node );
+        my $owner = {
+            id           => $response->xpc->findvalue( './/s3:ID',          $owner_node ),
+            display_name => $response->xpc->findvalue( './/s3:DisplayName', $owner_node )
+        };
+        my $etag = $response->xpc->findvalue( './/s3:ETag', $node );
+        push @files,
+          {
+            bucket => $s->{bucket},
+            key          => $response->xpc->findvalue( './/s3:Key',          $node ),
+            lastmodified => $response->xpc->findvalue( './/s3:LastModified', $node ),
+            etag         => $response->xpc->findvalue( './/s3:ETag',         $node ),
+            size         => $response->xpc->findvalue( './/s3:Size',         $node ),
+            owner        => $owner,
+          };
+    }    # end foreach()
+
+    if ( @files ) {
+        $s->{marker} = $files[-1]->{key};
+    }    # end if()
+
+    return unless defined wantarray;
+    @files ? return @files : return;
+}    # end _fetch()
+
+1;   # return true:
 
 =pod
 
@@ -274,5 +249,4 @@ terms as any version of perl itself.
 Copyright John Drago 2011 all rights reserved.
 
 =cut
-
 
