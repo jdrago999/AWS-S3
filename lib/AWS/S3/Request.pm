@@ -29,24 +29,24 @@ has 'protocol' => (
 
 sub _send_request
 {
-  my ($s, $method, $uri, $headers, $content) = @_;
-  
-  my $req = HTTP::Request->new( $method => $uri );
-  $req->content( $content ) if $content;
-  map { 
-    $req->header( $_ => $headers->{$_} )
-  } keys %$headers;
-  
-  my $res = $s->s3->ua->request( $req );
-  
-  # After creating a bucket and setting its location constraint, we get this
-  # strange 'TemporaryRedirect' response.  Deal with it.
-  if( $res->header('location') && $res->content =~ m{>TemporaryRedirect<}s )
-  {
-    $req->uri( $res->header('location') );
-    $res = $s->s3->ua->request( $req );
-  }# end if()
-  return $s->parse_response( $res );
+    my ($s, $method, $uri, $headers, $content) = @_;
+
+    my $req = HTTP::Request->new( $method => $uri );
+    $req->content( $content ) if $content;
+    map { 
+        $req->header( $_ => $headers->{$_} )
+    } keys %$headers;
+
+    my $res = $s->s3->ua->request( $req );
+
+    # After creating a bucket and setting its location constraint, we get this
+    # strange 'TemporaryRedirect' response.  Deal with it.
+    if( $res->header('location') && $res->content =~ m{>TemporaryRedirect<}s )
+    {
+        $req->uri( $res->header('location') );
+        $res = $s->s3->ua->request( $req );
+    }# end if()
+    return $s->parse_response( $res );
 }# end _send_request()
 
 

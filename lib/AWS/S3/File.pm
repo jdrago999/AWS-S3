@@ -37,10 +37,11 @@ has 'owner'  => (
   weak_ref  => 1,
 );
 
-has 'storageclass'  => (
+has 'storage_class'  => (
   is        => 'ro',
   isa       => 'Str',
-  required  => 0,
+  default   => sub{ 'STANDARD' },
+  required  => 1,
 );
 
 has 'lastmodified'  => (
@@ -49,7 +50,7 @@ has 'lastmodified'  => (
   required  => 0,
 );
 
-has 'contenttype'  => (
+has 'content_type'  => (
   is        => 'rw',
   isa       => 'Str',
   required  => 0,
@@ -145,10 +146,10 @@ sub _set_contents
     bucket                  => $s->bucket->name,
     file                    => $s,
     contents                => $ref,
-    content_type            => $s->contenttype,
+    content_type            => $s->content_type,
     server_side_encryption  => $s->is_encrypted ? 'AES256' : undef,
   )->request();
-  
+ 
   (my $etag = $response->response->header('etag')) =~ s{^"}{};
   $etag =~ s{"$}{};
   $s->{etag} = $etag;
@@ -214,7 +215,7 @@ AWS::S3::File - A single file in Amazon S3
   # Alternative update
   $file->update( 
     contents => \'New contents', # optional
-    contenttype => 'text/plain'  # optional
+    content_type => 'text/plain'  # optional
   );
   
   # Delete the file:
@@ -256,7 +257,7 @@ L<ASW::S3::Owner> - read-only.
 
 The L<ASW::S3::Owner> that the file belongs to.
 
-=head2 storageclass
+=head2 storage_class
 
 String - read-only.
 
@@ -297,7 +298,7 @@ Deletes the file from Amazon S3.
 
 =head2 update()
 
-Update contents and/or contenttype of the file.
+Update contents and/or content_type of the file.
 
 =head1 SEE ALSO
 
