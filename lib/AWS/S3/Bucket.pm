@@ -25,13 +25,49 @@ has 'creation_date' => (
     required => 0,
 );
 
+use MooseX::Types -declare => [qw/ACLShorts/];
+
 has 'acl' => (
     is       => 'rw',
     isa      => 'Str',
     required => 0,
     lazy     => 1,
-    default  => \&_get_acl,
-    trigger  => \&_after_acl
+    clearer  => '_clear_acl',
+    default  => sub {
+        my $self = shift;
+        my $type = 'GetBucketAccessControl';
+        return $self->_get_property( $type )->response->decoded_content();
+    },
+    trigger  => sub {
+        my ( $self, $new_val, $old_val ) = @_;
+
+        my %shorts = map { $_ => undef } qw(
+          private public-read public-read-write authenticated-read
+        );
+
+        my %acl = ();
+        if ( $new_val =~ m{<} ) {
+            $acl{acl_xml} = $new_val;
+        }
+        elsif ( exists $shorts{$new_val} ) {
+            $acl{acl_short} = $new_val;
+        }
+        else {
+            die "Attempt to set an invalid value for acl: '$new_val'";
+        }
+
+        my $type     = 'SetBucketAccessControl';
+        my $req      = $self->s3->request( $type, %acl, bucket => $self->name, );
+        my $response = $req->request();
+
+        return if $response->response->code == 404;
+
+        if ( my $msg = $response->friendly_error() ) {
+            die $msg;
+        }    # end if()
+
+        $self->_clear_acl;
+    }
 );
 
 has 'location_constraint' => (
@@ -39,7 +75,19 @@ has 'location_constraint' => (
     isa      => 'Str',
     required => 0,
     lazy     => 1,
-    default  => \&_get_location_constraint
+    default  => sub {
+        my $self = shift;
+
+        my $type     = 'GetBucketLocationConstraint';
+        my $response = $self->_get_property( $type );
+
+        my $constraint = $response->xpc->findvalue( '//s3:LocationConstraint' );
+        if ( defined $constraint && $constraint eq '' ) {
+            return;
+        } else {
+            return $constraint;
+        }
+    }
 );
 
 has 'policy' => (
@@ -47,105 +95,46 @@ has 'policy' => (
     isa      => 'Str',
     required => 0,
     lazy     => 1,
-    default  => \&_get_policy,
-    trigger  => \&_set_policy
-);
+    clearer  => '_clear_policy',
+    default  => sub {
+        my $self = shift;
 
-sub _after_acl {
-    my ( $s, $new_val, $old_val ) = @_;
+        my $type     = 'GetBucketPolicy';
+        my $req      = $self->s3->request( $type, bucket => $self->name, );
+        my $response = $req->request();
 
-    my %shorts = map { $_ => 1 } qw(
-      private public-read public-read-write authenticated-read
-    );
-    my %acl = ();
-    if ( $new_val =~ m{<} ) {
-        $acl{acl_xml} = $new_val;
-    } elsif ( exists $shorts{$new_val} ) {
-        $acl{acl_short} = $new_val;
-    } else {
-        die "Attempt to set an invalid value for acl: '$new_val'";
-    }    # end if()
+        eval { $response->_parse_errors };
+        if ( my $msg = $response->friendly_error() ) {
+            if ( $response->error_code eq 'NoSuchBucketPolicy' ) {
+                return '';
+            } else {
+                die $msg;
+            }    # end if()
+        }    # end if()
 
-    $s->_set_acl( %acl );
-    $s->{acl} = $s->_get_acl();
-};
+        return $response->response->decoded_content();
+    },
+    trigger  => sub {
+        my ( $self, $policy ) = @_;
 
-sub _set_acl {
-    my ( $s, %acl ) = @_;
+        my $type = 'SetBucketPolicy';
+        my $req  = $self->s3->request(
+            $type,
+            bucket => $self->name,
+            policy => $policy,
+        );
+        my $response = $req->request();
 
-    my $type     = 'SetBucketAccessControl';
-    my $req      = $s->s3->request( $type, %acl, bucket => $s->name, );
-    my $response = $req->request();
-
-    return if $response->response->code == 404;
-
-    if ( my $msg = $response->friendly_error() ) {
-        die $msg;
-    }    # end if()
-
-    return $response->response->decoded_content;
-}    # end _set_acl()
-
-sub _get_acl {
-    my $s = shift;
-
-    my $type = 'GetBucketAccessControl';
-    return $s->_get_property( $type )->response->decoded_content();
-}    # end _get_acl()
-
-sub _get_location_constraint {
-    my $s = shift;
-
-    my $type     = 'GetBucketLocationConstraint';
-    my $response = $s->_get_property( $type );
-
-    my $constraint = $response->xpc->findvalue( '//s3:LocationConstraint' );
-    if ( defined $constraint && $constraint eq '' ) {
-        return;
-    } else {
-        return $constraint;
-    }    # end if()
-}    # end _get_location_constraint()
-
-sub _get_policy {
-    my $s = shift;
-
-    my $type     = 'GetBucketPolicy';
-    my $req      = $s->s3->request( $type, bucket => $s->name, );
-    my $response = $req->request();
-
-    eval { $response->_parse_errors };
-    if ( my $msg = $response->friendly_error() ) {
-        if ( $response->error_code eq 'NoSuchBucketPolicy' ) {
-            return '';
-        } else {
+        #warn "NewPolicy:($policy).......\n";
+        #warn $response->response->as_string;
+        if ( my $msg = $response->friendly_error() ) {
             die $msg;
         }    # end if()
-    }    # end if()
 
-    return $response->response->decoded_content();
-}    # end _get_policy()
+        $self->_clear_policy;
 
-# XXX: Not tested yet.
-sub _set_policy {
-    my ( $s, $policy ) = @_;
-
-    my $type = 'SetBucketPolicy';
-    my $req  = $s->s3->request(
-        $type,
-        bucket => $s->name,
-        policy => $policy,
-    );
-    my $response = $req->request();
-
-    #warn "NewPolicy:($policy).......\n";
-    #warn $response->response->as_string;
-    if ( my $msg = $response->friendly_error() ) {
-        die $msg;
-    }    # end if()
-
-    return $response->response->decoded_content();
-}    # end _set_policy()
+    }
+);
 
 # XXX: Not tested.
 sub enable_cloudfront_distribution {
@@ -251,11 +240,7 @@ sub delete_multi {
 sub _get_property {
     my ( $s, $type, %args ) = @_;
 
-    my $req = $s->s3->request(
-        $type,
-        bucket => $s->name,
-        %args,
-    );
+    my $req = $s->s3->request( $type, bucket => $s->name, %args );
     my $response = $req->request();
 
     return if $response->response->code == 404;
@@ -267,7 +252,9 @@ sub _get_property {
     return $response;
 }    # end _get_property()
 
-1;   # return true:
+__PACKAGE__->meta->make_immutable;
+
+__END__
 
 =pod
 

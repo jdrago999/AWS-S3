@@ -51,7 +51,7 @@ has 'content' => (
     is       => 'ro',
     required => 1,
     isa      => 'Str|ScalarRef|CodeRef',
-    default  => sub { '' },
+    default  => '',
 );
 
 has 'metadata' => (
@@ -110,5 +110,5 @@ sub http_request {
 # XXX: Not needed by us...
 sub _is_dns_bucket { 1 }
 
-1;    # return true:
+__PACKAGE__->meta->make_immutable;
 

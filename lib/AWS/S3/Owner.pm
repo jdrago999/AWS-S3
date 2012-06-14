@@ -15,7 +15,9 @@ has 'display_name' => (
     required => 1,
 );
 
-1;    # return true:
+__PACKAGE__->meta->make_immutable;
+
+__END__
 
 =pod
 

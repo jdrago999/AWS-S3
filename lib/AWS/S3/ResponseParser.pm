@@ -120,5 +120,4 @@ sub _xpc_of_content {
     return $xpc;
 }    # end _xpc_of_content()
 
-1;   # return true:
-
+__PACKAGE__->meta->make_immutable;

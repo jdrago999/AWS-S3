@@ -30,6 +30,7 @@ has 'method' => (
     required => 1,
 );
 
+## Why is this both required, and does it have a default... slight confusion
 has 'bucket_name' => (
     is       => 'ro',
     isa      => 'Str',
@@ -218,6 +219,4 @@ sub _urlencode {
     my ( $unencoded ) = @_;
     return uri_escape_utf8( $unencoded, '^A-Za-z0-9_-' );
 }    # end _urlencode()
-
-1;   # return true:
-
+1;

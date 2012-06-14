@@ -4,7 +4,7 @@ package AWS::S3::Request::SetBucketAccessControl;
 use Moose;
 use AWS::S3::Signer;
 
-extends 'AWS::S3::Request';
+with 'AWS::S3::Roles::Request';
 
 has 'bucket' => (
     is       => 'ro',
@@ -70,5 +70,4 @@ sub parse_response {
     );
 }    # end http_request()
 
-1;   # return true:
-
+__PACKAGE__->meta->make_immutable;

@@ -4,6 +4,19 @@ package AWS::S3::File;
 use Moose;
 use Carp 'confess';
 
+use MooseX::Types -declare => [qw/fileContents/];
+use MooseX::Types::Moose qw/Str ScalarRef CodeRef/;
+
+subtype fileContents, as ScalarRef;
+coerce fileContents,
+  from  CodeRef,
+  via   {
+    my $ref = $_[0];
+    my $v = $ref->();
+    ref $v ? $v : \$v
+  }
+;
+
 has 'key' => (
     is       => 'ro',
     isa      => 'Str',
@@ -43,7 +56,7 @@ has 'owner' => (
 has 'storage_class' => (
     is       => 'ro',
     isa      => 'Str',
-    default  => sub { 'STANDARD' },
+    default  => 'STANDARD',
     required => 1,
 );
 
@@ -57,7 +70,7 @@ has 'contenttype' => (
     is       => 'rw',
     isa      => 'Str',
     required => 0,
-    default  => sub { 'binary/octet-stream' }
+    default  => 'binary/octet-stream'
 );
 
 has 'is_encrypted' => (
@@ -78,20 +91,6 @@ has 'is_encrypted' => (
         return $req->request->response->header( 'x-amz-server-side-encryption' ) ? 1 : 0;
     },
 );
-
-use MooseX::Types -declare => [qw/fileContents/];
-use MooseX::Types::Moose qw/Str ScalarRef CodeRef/;
-
-subtype fileContents, as ScalarRef;
-coerce fileContents,
-  from  CodeRef,
-  via   {
-    my $ref = $_[0];
-    my $v = $ref->();
-    ref $v ? $v : \$v
-  }
-;
-
 
 has 'contents' => (
     is       => 'rw',
@@ -177,7 +176,9 @@ sub delete {
     return 1;
 }    # end delete()
 
-1;   # return true:
+__PACKAGE__->meta->make_immutable;
+
+__END__
 
 =pod
 

@@ -1,6 +1,6 @@
 
-package AWS::S3::Request;
-use Moose;
+package AWS::S3::Roles::Request;
+use Moose::Role;
 use HTTP::Request;
 use AWS::S3::ResponseParser;
 
@@ -25,6 +25,8 @@ has 'protocol' => (
     }
 );
 
+requires ('parse_response');
+
 sub _send_request {
     my ( $s, $method, $uri, $headers, $content ) = @_;
 
@@ -43,11 +45,4 @@ sub _send_request {
     return $s->parse_response( $res );
 }    # end _send_request()
 
-sub parse_response {
-    my ( $s, $res ) = @_;
-
-    die "parse_response() is not yet implemented!";
-}    # end parse_response()
-
-1;   # return true:
-
+1;

@@ -3,7 +3,7 @@ package AWS::S3::Request::ListBucket;
 
 use Moose;
 
-extends 'AWS::S3::Request';
+with 'AWS::S3::Roles::Request';
 
 has 'bucket' => (
     is       => 'ro',
@@ -66,5 +66,4 @@ sub parse_response {
     );
 }    # end http_request()
 
-1;   # return true:
-
+__PACKAGE__->meta->make_immutable;
