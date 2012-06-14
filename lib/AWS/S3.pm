@@ -1,7 +1,7 @@
 
 package AWS::S3;
 
-use VSO 0.024;
+use Moose;
 use Carp 'confess';
 use LWP::UserAgent::Determined;
 use HTTP::Response;
@@ -13,7 +13,7 @@ use AWS::S3::ResponseParser;
 use AWS::S3::Owner;
 use AWS::S3::Bucket;
 
-our $VERSION = '0.028';
+our $VERSION = '0.03_01';
 
 has 'access_key_id' => ( is => 'ro' );
 

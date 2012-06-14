@@ -1,7 +1,7 @@
 
 package AWS::S3::ResponseParser;
 
-use VSO;
+use Moose;
 use XML::LibXML;
 use XML::LibXML::XPathContext;
 
@@ -51,7 +51,8 @@ has 'xpc' => (
 
 has 'friendly_error' => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => 'Maybe[Str]',
+    lazy     => 1,
     required => 0,
     default  => sub {
         my $s = shift;

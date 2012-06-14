@@ -10,19 +10,21 @@ all_from 'lib/AWS/S3.pm';
 
 test_requires 'Test::More'  => '0';
 
-requires      'VSO'                         => '0.024';
-requires      'Class::Load'                 => '0';
-requires      'XML::LibXML'                 => '0';
-requires      'XML::LibXML::XPathContext'   => '0';
-requires      'LWP::UserAgent::Determined'  => '0';
-requires      'Carp'                        => '0';
-requires      'HTTP::Date'                  => '0';
-requires      'MIME::Base64'                => '0';
-requires      'URI::Escape'                 => '0';
-requires      'URI::QueryParam'             => '0';
-requires      'URI::Escape'                 => '0';
-requires      'Digest::HMAC_SHA1'           => '0';
-requires      'Iterator::Paged'             => '0';
+requires 'Moose'                         => '2.0';
+requires 'MooseX::Types';
+requires 'MooseX::Types::URI';
+requires 'Class::Load';
+requires 'XML::LibXML';
+requires 'XML::LibXML::XPathContext';
+requires 'LWP::UserAgent::Determined';
+requires 'Carp';
+requires 'HTTP::Date';
+requires 'MIME::Base64';
+requires 'URI::Escape';
+requires 'URI::QueryParam';
+requires 'URI::Escape';
+requires 'Digest::HMAC_SHA1';
+requires 'Iterator::Paged';
 
 resources(
   'repository'  => 'https://github.com/jdrago999/AWS-S3'

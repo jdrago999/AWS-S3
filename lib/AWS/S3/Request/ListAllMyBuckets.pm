@@ -1,7 +1,7 @@
 
 package AWS::S3::Request::ListAllMyBuckets;
 
-use VSO;
+use Moose;
 use AWS::S3::Signer;
 
 extends 'AWS::S3::Request';

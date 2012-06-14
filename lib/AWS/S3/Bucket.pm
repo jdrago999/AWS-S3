@@ -2,7 +2,7 @@
 package AWS::S3::Bucket;
 
 use Carp 'confess';
-use VSO;
+use Moose;
 use IO::Socket::INET;
 use AWS::S3::ResponseParser;
 use AWS::S3::FileIterator;
@@ -30,9 +30,8 @@ has 'acl' => (
     isa      => 'Str',
     required => 0,
     lazy     => 1,
-    default  => sub {
-        shift->_get_acl();
-    }
+    default  => \&_get_acl,
+    trigger  => \&_after_acl
 );
 
 has 'location_constraint' => (
@@ -40,9 +39,7 @@ has 'location_constraint' => (
     isa      => 'Str',
     required => 0,
     lazy     => 1,
-    default  => sub {
-        shift->_get_location_constraint();
-    }
+    default  => \&_get_location_constraint
 );
 
 has 'policy' => (
@@ -50,18 +47,11 @@ has 'policy' => (
     isa      => 'Str',
     required => 0,
     lazy     => 1,
-    default  => sub {
-        shift->_get_policy();
-    }
+    default  => \&_get_policy,
+    trigger  => \&_set_policy
 );
 
-after 'policy' => sub {
-    my ( $s, $new_val ) = @_;
-
-    $s->_set_policy( $new_val );
-};
-
-after 'acl' => sub {
+sub _after_acl {
     my ( $s, $new_val, $old_val ) = @_;
 
     my %shorts = map { $_ => 1 } qw(
@@ -213,13 +203,7 @@ sub file {
 sub add_file {
     my ( $s, %args ) = @_;
 
-    if ( ref( $args{contents} ) eq 'CODE' ) {
-        my $str = $args{contents}->();
-        $args{contents} = $str;
-    }    # end if()
-
     my $file = AWS::S3::File->new(
-        size => length( ${ $args{contents} } ),
         %args,
         bucket => $s
     );

@@ -1,7 +1,7 @@
 
 package AWS::S3::Owner;
 
-use VSO;
+use Moose;
 
 has 'id' => (
     is       => 'ro',

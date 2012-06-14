@@ -1,7 +1,7 @@
 
 package AWS::S3::Request::SetBucketAccessControl;
 
-use VSO;
+use Moose;
 use AWS::S3::Signer;
 
 extends 'AWS::S3::Request';

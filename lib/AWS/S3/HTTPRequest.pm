@@ -1,7 +1,7 @@
 
 package AWS::S3::HTTPRequest;
 
-use VSO;
+use Moose;
 use AWS::S3::Signer;
 
 use Carp 'confess';

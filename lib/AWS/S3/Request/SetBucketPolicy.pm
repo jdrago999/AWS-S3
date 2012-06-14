@@ -1,7 +1,7 @@
 
 package AWS::S3::Request::SetBucketPolicy;
 
-use VSO;
+use Moose;
 use AWS::S3::Signer;
 use AWS::S3::ResponseParser;
 use JSON::XS;
@@ -16,13 +16,15 @@ has 'bucket' => (
 
 has 'policy' => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => 'Maybe[Str]',
     required => 1,
 
+    # Evan Carroll 6/14/2012
+    # COMMENTED THIS OUT, not sure if it ever worked on VSO
     # Must be able to decode the JSON string:
-    where => sub {
-        eval { decode_json( $_ ); 1 };
-    }
+    # where => sub {
+    #     eval { decode_json( $_ ); 1 };
+    # }
 );
 
 sub request {

@@ -1,7 +1,7 @@
 
 package AWS::S3::Request::ListBucket;
 
-use VSO;
+use Moose;
 
 extends 'AWS::S3::Request';
 

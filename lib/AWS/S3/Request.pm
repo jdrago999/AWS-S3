@@ -1,6 +1,6 @@
 
 package AWS::S3::Request;
-use VSO;
+use Moose;
 use HTTP::Request;
 use AWS::S3::ResponseParser;
 

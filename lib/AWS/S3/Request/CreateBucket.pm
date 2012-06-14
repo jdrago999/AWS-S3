@@ -1,6 +1,6 @@
 
 package AWS::S3::Request::CreateBucket;
-use VSO;
+use Moose;
 
 extends 'AWS::S3::Request';
 

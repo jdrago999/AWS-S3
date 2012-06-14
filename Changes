@@ -1,6 +1,11 @@
 
 Changelog for perl module AWS::S3
 
+2012-06-14      v0.03_01
+  Work done by Evan Carroll (http://www.evancarroll.com)
+  - Migrated to Moose & removed dependencies on VSO
+  - Fixed bug introduced by previous commit, reverted to contenttype & all tests pass
+
 2012-03-01      v0.028
   - Fixed: AWS/S3.pm required a higher version of VSO than the Makefile.PL and META.yml.
   - Strange: Local testing shows $bucket->delete_multi works, but it gives me 

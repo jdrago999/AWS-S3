@@ -1,7 +1,7 @@
 
 package AWS::S3::Request::GetFileContents;
 
-use VSO;
+use Moose;
 use AWS::S3::Signer;
 use AWS::S3::ResponseParser;
 
