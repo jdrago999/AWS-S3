@@ -11,7 +11,7 @@ has 'expect_nothing' => (
     required => 1,
     default  => 0,
     trigger  => sub {
-        my ( $self, $expect_nothing, $oldValue ) = @_;
+        my ( $self, $expect_nothing) = @_;
         if ( $expect_nothing ) {
             my $code = $self->response->code;
             if ( $code =~ m{^2\d\d} && !$self->response->content ) {
@@ -67,7 +67,7 @@ has 'xpc' => (
     lazy    => 1,
     clearer => '_clear_xpc',
     default => sub {
-        my ( $self ) = @_;
+        my $self = shift;
 
         my $src = $self->response->content;
         return unless $src =~ m/^[[:space:]]*</s;
@@ -94,26 +94,30 @@ has 'friendly_error' => (
 );
 
 sub _parse_errors {
-    my ( $s ) = @_;
+    my $self = shift;
 
-    my $src = $s->response->content;
+    my $src = $self->response->content;
 
     # Do not try to parse non-xml:
     unless ( $src =~ m/^[[:space:]]*</s ) {
         ( my $code = $src ) =~ s/^[[:space:]]*\([0-9]*\).*$/$1/s;
-        $s->error_code( $code );
-        $s->error_message( $src );
+        $self->error_code( $code );
+        $self->error_message( $src );
         return 1;
     }    # end unless()
 
-    $s->_clear_xpc;
-    if ( $s->xpc->findnodes( "//Error" ) ) {
-        $s->error_code( $s->xpc->findvalue( "//Error/Code" ) );
-        $s->error_message( $s->xpc->findvalue( "//Error/Message" ) );
+    ## Originally at this point the re-setting of xpc would happen
+    ## Does not seem to be needed but it may be a problem area
+    ## Feel free to delete - Evan Carroll 2012/06/14
+    #### $s->_clear_xpc;
+
+    if ( $self->xpc->findnodes( "//Error" ) ) {
+        $self->error_code( $self->xpc->findvalue( "//Error/Code" ) );
+        $self->error_message( $self->xpc->findvalue( "//Error/Message" ) );
         return 1;
-    }    # end if()
+    }
 
     return 0;
-}    # end _parse_errors()
+}
 
 __PACKAGE__->meta->make_immutable;
