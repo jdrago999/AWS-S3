@@ -21,6 +21,4 @@ sub request {
     );
 }    # end request()
 
-#has 'bucket' => ( is => 'ro', isa => 'Str', required => 1 );
-
 1;

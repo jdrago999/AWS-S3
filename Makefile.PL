@@ -21,8 +21,6 @@ requires 'Carp';
 requires 'HTTP::Date';
 requires 'MIME::Base64';
 requires 'URI::Escape';
-requires 'URI::QueryParam';
-requires 'URI::Escape';
 requires 'Digest::HMAC_SHA1';
 requires 'Iterator::Paged';
 

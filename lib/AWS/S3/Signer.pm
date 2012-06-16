@@ -6,9 +6,6 @@ use HTTP::Request::Common;
 use HTTP::Date 'time2str';
 use MIME::Base64 qw(encode_base64);
 use URI::Escape qw(uri_escape_utf8);
-use URI::QueryParam;
-use URI::Escape;
-use URI;
 use Digest::HMAC_SHA1;
 use Digest::MD5 'md5';
 

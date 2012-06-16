@@ -2,6 +2,7 @@ package AWS::S3::Roles::Request;
 use Moose::Role;
 use HTTP::Request;
 use AWS::S3::ResponseParser;
+use MooseX::Types::URI qw(Uri);
 
 has 's3' => (
     is       => 'ro',
@@ -35,16 +36,26 @@ has "_action" => (
 has '_expect_nothing' => ( isa => 'Bool', is => 'ro', init_arg => undef );
 
 has '_uri' => (
-    isa     => 'Str',
+    isa     => Uri,
     is      => 'ro',
     lazy    => 1,
     default => sub {
-    my $self = shift;
-		my $m = $self->meta;
-      $self->protocol . '://'
-      . ( $m->has_attribute('bucket') ? $self->bucket . '.' : '' ) . 's3.amazonaws.com/'
-      . ( $m->has_attribute('key') ? $self->key : '' )
-      . ( $m->has_attribute('_subresource') ? '?'.$self->_subresource : '' )
+        my $self = shift;
+        my $m = $self->meta;
+
+        my $uri = URI->new(
+            $self->protocol . '://'
+            . ( $m->has_attribute('bucket') ? $self->bucket . '.' : '' )
+            . 's3.amazonaws.com/'
+        );
+
+        $uri->path( $self->key )
+          if $m->has_attribute('key');
+
+        $uri->query_keywords( $self->_subresource )
+          if $m->has_attribute('_subresource');
+
+        $uri;
     }
 );
 
