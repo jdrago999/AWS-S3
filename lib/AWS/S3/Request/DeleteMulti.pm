@@ -19,6 +19,17 @@ has 'keys' => (
     required => 1,
 );
 
+has '_subresource' => (
+    is       => 'ro',
+    isa      => 'Str',
+    init_arg => undef,
+    default  => 'delete'
+);
+
+
+
+has '+_expect_nothing' => ( default => 0 );
+
 sub request {
     my $s = shift;
 
@@ -34,7 +45,7 @@ XML
     my $signer = AWS::S3::Signer->new(
         s3           => $s->s3,
         method       => 'POST',
-        uri          => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/?delete',
+        uri          => $s->_uri,
         content      => \$xml,
         content_type => '',
     );
@@ -47,16 +58,6 @@ XML
         },
         $xml
     );
-}    # end request()
-
-sub parse_response {
-    my ( $s, $res ) = @_;
-
-    AWS::S3::ResponseParser->new(
-        response       => $res,
-        expect_nothing => 0,
-        type           => $s->type,
-    );
-}    # end http_request()
+}
 
 __PACKAGE__->meta->make_immutable;

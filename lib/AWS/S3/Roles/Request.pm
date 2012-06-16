@@ -1,4 +1,3 @@
-
 package AWS::S3::Roles::Request;
 use Moose::Role;
 use HTTP::Request;
@@ -25,7 +24,29 @@ has 'protocol' => (
     }
 );
 
-requires ('parse_response');
+# XXX should be required=>1; https://rt.cpan.org/Ticket/Display.html?id=77863
+has "_action" => (
+    isa       => 'Str',
+    is        => 'ro',
+    init_arg  => undef,
+    #required  => 1
+);
+
+has '_expect_nothing' => ( isa => 'Bool', is => 'ro', init_arg => undef );
+
+has '_uri' => (
+    isa     => 'Str',
+    is      => 'ro',
+    lazy    => 1,
+    default => sub {
+    my $self = shift;
+		my $m = $self->meta;
+      $self->protocol . '://'
+      . ( $m->has_attribute('bucket') ? $self->bucket . '.' : '' ) . 's3.amazonaws.com/'
+      . ( $m->has_attribute('key') ? $self->key : '' )
+      . ( $m->has_attribute('_subresource') ? '?'.$self->_subresource : '' )
+    }
+);
 
 sub _send_request {
     my ( $s, $method, $uri, $headers, $content ) = @_;
@@ -41,8 +62,18 @@ sub _send_request {
     if ( $res->header( 'location' ) && $res->content =~ m{>TemporaryRedirect<}s ) {
         $req->uri( $res->header( 'location' ) );
         $res = $s->s3->ua->request( $req );
-    }    # end if()
+    }
     return $s->parse_response( $res );
-}    # end _send_request()
+}
+
+sub parse_response {
+    my ( $self, $res ) = @_;
+
+    AWS::S3::ResponseParser->new(
+        response       => $res,
+        expect_nothing => $self->_expect_nothing,
+        type           => $self->type,
+    );
+}
 
 1;

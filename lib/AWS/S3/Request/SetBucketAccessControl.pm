@@ -24,6 +24,8 @@ has 'acl_xml' => (
     required => 0,
 );
 
+has '+_expect_nothing' => ( default => 1 );
+
 sub request {
     my $s = shift;
 
@@ -59,15 +61,5 @@ sub request {
         );
     }    # end if()
 }    # end request()
-
-sub parse_response {
-    my ( $s, $res ) = @_;
-
-    AWS::S3::ResponseParser->new(
-        response       => $res,
-        expect_nothing => 1,
-        type           => $s->type,
-    );
-}    # end http_request()
 
 __PACKAGE__->meta->make_immutable;

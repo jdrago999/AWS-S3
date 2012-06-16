@@ -8,10 +8,13 @@ use JSON::XS;
 
 with 'AWS::S3::Roles::Request';
 
-has 'bucket' => (
+has 'bucket' => ( is => 'ro', isa => 'Str', required => 1 );
+
+has '_subresource' => (
     is       => 'ro',
     isa      => 'Str',
-    required => 1,
+    init_arg => undef,
+    default  => 'policy'
 );
 
 has 'policy' => (
@@ -27,13 +30,15 @@ has 'policy' => (
     # }
 );
 
+has '+_expect_nothing' => ( default => 1 );
+
 sub request {
     my $s = shift;
 
     my $signer = AWS::S3::Signer->new(
         s3           => $s->s3,
         method       => 'PUT',
-        uri          => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/?policy',
+        uri          => $s->_uri
         content      => \$s->policy,
         content_type => '',
         content_md5  => '',
@@ -48,15 +53,5 @@ sub request {
         $s->policy
     );
 }    # end request()
-
-sub parse_response {
-    my ( $s, $res ) = @_;
-
-    AWS::S3::ResponseParser->new(
-        response       => $res,
-        expect_nothing => 1,
-        type           => $s->type,
-    );
-}    # end http_request()
 
 __PACKAGE__->meta->make_immutable;
