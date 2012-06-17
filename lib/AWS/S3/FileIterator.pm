@@ -153,7 +153,9 @@ sub _fetch {
     @files ? return @files : return;
 }    # end _fetch()
 
-1;   # return true:
+1;
+
+__END__
 
 =pod
 

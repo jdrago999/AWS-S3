@@ -1,29 +1,36 @@
 
 package AWS::S3::Request::SetBucketPolicy;
 
-use VSO;
+use Moose;
 use AWS::S3::Signer;
 use AWS::S3::ResponseParser;
 use JSON::XS;
 
-extends 'AWS::S3::Request';
+with 'AWS::S3::Roles::Request';
 
-has 'bucket' => (
+has 'bucket' => ( is => 'ro', isa => 'Str', required => 1 );
+
+has '_subresource' => (
     is       => 'ro',
     isa      => 'Str',
-    required => 1,
+    init_arg => undef,
+    default  => 'policy'
 );
 
 has 'policy' => (
     is       => 'ro',
-    isa      => 'Str',
+    isa      => 'Maybe[Str]',
     required => 1,
 
+    # Evan Carroll 6/14/2012
+    # COMMENTED THIS OUT, not sure if it ever worked on VSO
     # Must be able to decode the JSON string:
-    where => sub {
-        eval { decode_json( $_ ); 1 };
-    }
+    # where => sub {
+    #     eval { decode_json( $_ ); 1 };
+    # }
 );
+
+has '+_expect_nothing' => ( default => 1 );
 
 sub request {
     my $s = shift;
@@ -31,7 +38,7 @@ sub request {
     my $signer = AWS::S3::Signer->new(
         s3           => $s->s3,
         method       => 'PUT',
-        uri          => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/?policy',
+        uri          => $s->_uri
         content      => \$s->policy,
         content_type => '',
         content_md5  => '',
@@ -47,15 +54,4 @@ sub request {
     );
 }    # end request()
 
-sub parse_response {
-    my ( $s, $res ) = @_;
-
-    AWS::S3::ResponseParser->new(
-        response       => $res,
-        expect_nothing => 1,
-        type           => $s->type,
-    );
-}    # end http_request()
-
-1;   # return true:
-
+__PACKAGE__->meta->make_immutable;

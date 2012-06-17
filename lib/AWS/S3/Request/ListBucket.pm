@@ -1,9 +1,9 @@
 
 package AWS::S3::Request::ListBucket;
 
-use VSO;
+use Moose;
 
-extends 'AWS::S3::Request';
+with 'AWS::S3::Roles::Request';
 
 has 'bucket' => (
     is       => 'ro',
@@ -35,6 +35,8 @@ has 'delimiter' => (
     required => 0,
 );
 
+has '+_expect_nothing' => ( default => 0 );
+
 sub request {
     my $s = shift;
 
@@ -56,15 +58,4 @@ sub request {
     );
 }    # end request()
 
-sub parse_response {
-    my ( $s, $res ) = @_;
-
-    AWS::S3::ResponseParser->new(
-        response       => $res,
-        expect_nothing => 0,
-        type           => $s->type,
-    );
-}    # end http_request()
-
-1;   # return true:
-
+__PACKAGE__->meta->make_immutable;

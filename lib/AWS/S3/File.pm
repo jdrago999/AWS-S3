@@ -1,8 +1,21 @@
 
 package AWS::S3::File;
 
-use VSO;
+use Moose;
 use Carp 'confess';
+
+use MooseX::Types -declare => [qw/fileContents/];
+use MooseX::Types::Moose qw/Str ScalarRef CodeRef/;
+
+subtype fileContents, as ScalarRef;
+coerce fileContents,
+  from  CodeRef,
+  via   {
+    my $ref = $_[0];
+    my $v = $ref->();
+    ref $v ? $v : \$v
+  }
+;
 
 has 'key' => (
     is       => 'ro',
@@ -21,6 +34,10 @@ has 'size' => (
     is       => 'ro',
     isa      => 'Int',
     required => 0,
+    default  => sub {
+      my $self = shift;
+      return length ${$self->contents};
+    }
 );
 
 has 'etag' => (
@@ -39,7 +56,7 @@ has 'owner' => (
 has 'storage_class' => (
     is       => 'ro',
     isa      => 'Str',
-    default  => sub { 'STANDARD' },
+    default  => 'STANDARD',
     required => 1,
 );
 
@@ -49,11 +66,11 @@ has 'lastmodified' => (
     required => 0,
 );
 
-has 'content_type' => (
+has 'contenttype' => (
     is       => 'rw',
     isa      => 'Str',
     required => 0,
-    default  => sub { 'binary/octet-stream' }
+    default  => 'binary/octet-stream'
 );
 
 has 'is_encrypted' => (
@@ -75,30 +92,15 @@ has 'is_encrypted' => (
     },
 );
 
-subtype 'AWS::S3::FileContents' => as 'CodeRef';
-coerce
-  'AWS::S3::FileContents' => from 'ScalarRef',
-  via {
-    my $val = $_;
-    return sub { $val }
-  };
-
 has 'contents' => (
     is       => 'rw',
-    isa      => 'AWS::S3::FileContents',
+    isa      => fileContents,
     required => 0,
     lazy     => 1,
     coerce   => 1,
     default  => \&_get_contents,
+    trigger  => \&_set_contents
 );
-
-after 'contents' => sub {
-    my ( $s, $new_value ) = @_;
-    return unless defined $new_value;
-
-    $s->_set_contents( $new_value );
-    $s->{contents} = undef;
-};
 
 sub BUILD {
     my $s = shift;
@@ -143,7 +145,7 @@ sub _set_contents {
         bucket                 => $s->bucket->name,
         file                   => $s,
         contents               => $ref,
-        content_type           => $s->content_type,
+        content_type           => $s->contenttype,
         server_side_encryption => $s->is_encrypted ? 'AES256' : undef,
     )->request();
 
@@ -174,7 +176,9 @@ sub delete {
     return 1;
 }    # end delete()
 
-1;   # return true:
+__PACKAGE__->meta->make_immutable;
+
+__END__
 
 =pod
 
@@ -209,7 +213,7 @@ AWS::S3::File - A single file in Amazon S3
   # Alternative update
   $file->update( 
     contents => \'New contents', # optional
-    content_type => 'text/plain'  # optional
+    contenttype => 'text/plain'  # optional
   );
   
   # Delete the file:
@@ -292,7 +296,7 @@ Deletes the file from Amazon S3.
 
 =head2 update()
 
-Update contents and/or content_type of the file.
+Update contents and/or contenttype of the file.
 
 =head1 SEE ALSO
 

@@ -1,7 +1,7 @@
 
 package AWS::S3::Owner;
 
-use VSO;
+use Moose;
 
 has 'id' => (
     is       => 'ro',
@@ -15,7 +15,9 @@ has 'display_name' => (
     required => 1,
 );
 
-1;    # return true:
+__PACKAGE__->meta->make_immutable;
+
+__END__
 
 =pod
 

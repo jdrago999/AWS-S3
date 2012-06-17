@@ -1,21 +1,19 @@
 
 package AWS::S3::Signer;
 
-use VSO;
+use Moose;
 use HTTP::Request::Common;
 use HTTP::Date 'time2str';
 use MIME::Base64 qw(encode_base64);
 use URI::Escape qw(uri_escape_utf8);
-use URI::QueryParam;
-use URI::Escape;
-use URI;
 use Digest::HMAC_SHA1;
 use Digest::MD5 'md5';
 
 my $METADATA_PREFIX      = 'x-amz-meta-';
 my $AMAZON_HEADER_PREFIX = 'x-amz-';
 
-enum 'AWS::S3::HTTPMethod' => [qw( HEAD GET PUT POST DELETE )];
+use Moose::Util::TypeConstraints qw(enum);
+use MooseX::Types::URI qw(Uri);
 
 has 's3' => (
     is       => 'ro',
@@ -25,10 +23,11 @@ has 's3' => (
 
 has 'method' => (
     is       => 'ro',
-    isa      => 'AWS::S3::HTTPMethod',
+    isa      => enum([qw/ HEAD GET PUT POST DELETE /]),
     required => 1,
 );
 
+## Why is this both required, and does it have a default... slight confusion
 has 'bucket_name' => (
     is       => 'ro',
     isa      => 'Str',
@@ -46,12 +45,10 @@ has 'bucket_name' => (
 
 has 'uri' => (
     is       => 'ro',
-    isa      => 'URI',
+    isa      => Uri,
     required => 1,
     coerce   => 1,
 );
-
-coerce 'URI' => from 'Str' => via { URI->new( $_ ) };
 
 #has 'headers' => (
 #  is        => 'ro',
@@ -219,6 +216,4 @@ sub _urlencode {
     my ( $unencoded ) = @_;
     return uri_escape_utf8( $unencoded, '^A-Za-z0-9_-' );
 }    # end _urlencode()
-
-1;   # return true:
-
+1;

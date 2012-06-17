@@ -1,7 +1,7 @@
 
 package AWS::S3;
 
-use VSO 0.024;
+use Moose;
 use Carp 'confess';
 use LWP::UserAgent::Determined;
 use HTTP::Response;
@@ -13,17 +13,15 @@ use AWS::S3::ResponseParser;
 use AWS::S3::Owner;
 use AWS::S3::Bucket;
 
-our $VERSION = '0.028';
+our $VERSION = '0.03_01';
 
-has 'access_key_id' => ( is => 'ro' );
-
-has 'secret_access_key' => ( is => 'ro' );
+has [qw/access_key_id secret_access_key/] => ( is => 'ro', isa => 'Str' );
 
 has 'secure' => (
     is      => 'ro',
-    isa     => 'Int',
+    isa     => 'Bool',
     lazy    => 1,
-    default => sub { 0 },
+    default => 0
 );
 
 has 'ua' => (
@@ -96,7 +94,9 @@ sub add_bucket {
     return $s->bucket( $args{name} );
 }    # end add_bucket()
 
-1;   # return true:
+__PACKAGE__->meta->make_immutable;
+
+__END__
 
 =pod
 

@@ -1,15 +1,13 @@
 
 package AWS::S3::HTTPRequest;
 
-use VSO;
+use Moose;
 use AWS::S3::Signer;
 
 use Carp 'confess';
 use HTTP::Date 'time2str';
 use MIME::Base64 qw(encode_base64);
 use URI::Escape qw(uri_escape_utf8);
-use URI::QueryParam;
-use URI::Escape;
 use Digest::HMAC_SHA1;
 use URI;
 
@@ -51,7 +49,7 @@ has 'content' => (
     is       => 'ro',
     required => 1,
     isa      => 'Str|ScalarRef|CodeRef',
-    default  => sub { '' },
+    default  => '',
 );
 
 has 'metadata' => (
@@ -110,5 +108,5 @@ sub http_request {
 # XXX: Not needed by us...
 sub _is_dns_bucket { 1 }
 
-1;    # return true:
+__PACKAGE__->meta->make_immutable;
 
