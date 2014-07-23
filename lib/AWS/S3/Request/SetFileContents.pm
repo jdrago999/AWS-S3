@@ -45,7 +45,7 @@ sub request {
     my $signer = AWS::S3::Signer->new(
         s3           => $s->s3,
         method       => 'PUT',
-        uri          => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/' . $s->file->key,
+        uri          => $s->protocol . '://' . $s->bucket . '.' . $s->endpoint . '/' . $s->file->key,
         content_type => $s->content_type,
         content      => $contents,
         headers      => [ 'x-amz-storage-class', $s->file->storage_class ],

@@ -75,9 +75,10 @@ sub http_request {
     my $metadata = $s->metadata;
 
     my $protocol = $s->s3->secure ? 'https' : 'http';
-    my $uri = "$protocol://s3.amazonaws.com/$path";
+	my $endpoint = $s->s3->endpoint;
+    my $uri = "$protocol://$endpoint/$path";
     if ( $path =~ m{^([^/?]+)(.*)} && _is_dns_bucket( $1 ) ) {
-        $uri = "$protocol://$1.s3.amazonaws.com$2";
+        $uri = "$protocol://$1.$endpoint$2";
     }    # end if()
 
     my $signer = AWS::S3::Signer->new(
