@@ -35,7 +35,8 @@ has 'bucket_name' => (
     lazy     => 1,
     default  => sub {
         my $s = shift;
-        if ( my ( $name ) = $s->uri->host =~ m{^(.+?)\.s3\.amazonaws} ) {
+        my $endpoint = $s->s3->endpoint;
+        if ( my ( $name ) = $s->uri->host =~ m{^(.+?)\.\Q$endpoint\E} ) {
             return $name;
         } else {
             return '';
