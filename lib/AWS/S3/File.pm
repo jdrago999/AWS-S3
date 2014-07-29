@@ -118,6 +118,7 @@ sub update {
     if ( @args_ok ) {
         $s->{$_} = $args{$_} for @args_ok;
         $s->_set_contents();
+        return 1;
     }
     return;
 }    # end update()
