@@ -37,3 +37,4 @@ lib/AWS/S3/Roles/Request.pm
 lib/AWS/S3/Signer.pm
 t/010-basic/010-basic.t
 t/020_endpoint.t
+t/040_file.t

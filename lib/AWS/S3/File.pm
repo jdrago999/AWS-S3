@@ -159,6 +159,21 @@ sub _set_contents {
     }    # end if()
 }    # end _set_contents()
 
+sub signed_url {
+    my $s       = shift;
+    my $expires = shift || time + 3600;
+
+    my $type = "GetPreSignedUrl";
+    my $uri  = $s->bucket->s3->request(
+        $type,
+        bucket  => $s->bucket->name,
+        key     => $s->key,
+        expires => $expires,
+    )->request;
+
+    return $uri;
+}
+
 sub delete {
     my $s = shift;
 
@@ -216,6 +231,9 @@ AWS::S3::File - A single file in Amazon S3
     contents => \'New contents', # optional
     contenttype => 'text/plain'  # optional
   );
+
+  # Get signed URL for the file for public access
+  print $file->signed_url( $expiry_time );
   
   # Delete the file:
   $file->delete();
@@ -298,6 +316,11 @@ Deletes the file from Amazon S3.
 =head2 update()
 
 Update contents and/or contenttype of the file.
+
+=head2 signed_url( $expiry_time )
+
+Will return a signed URL for public access to the file. $expiry_time should be a
+Unix seconds since epoch, and will default to now + 1 hour is not passed
 
 =head1 SEE ALSO
 

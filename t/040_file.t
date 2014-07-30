@@ -27,7 +27,7 @@ monkey_patch_module();
 
 isa_ok(
     my $file = AWS::S3::File->new(
-        key          => "$Script",
+        key          => $ENV{AWS_TEST_KEY} // "$Script",
         contents     => sub { 'test file contents' },
         is_encrypted => 0,
         bucket       => AWS::S3::Bucket->new(
@@ -69,6 +69,12 @@ isa_ok( $file->contents,'SCALAR','contents' );
 note( "methods" );
 ok( !$file->update,'update without args' );
 ok( $file->update( contents => \'new contents' ),'update with args' );
+
+is(
+    $file->signed_url( 1406712744 ),
+    'http://maibucket.s3.baz.com/040_file.t?AWSAccessKeyId=foo&Expires=1406712744&Signature=gqOO//FsAuSTvgEwBYPp0tX1rOU=',
+    'signed_url'
+);
 
 done_testing();
 
