@@ -33,7 +33,7 @@ isa_ok $owner, 'AWS::S3::Owner';
 ok $owner->id, 'owner.id';
 ok $owner->display_name, 'owner.display_name';
 
-my $bucket_name = "aws-s3-test-" . int(rand() * 1_000_000) . '-' . time() . "-foo";
+my $bucket_name = $ENV{AWS_TEST_BUCKET} || "aws-s3-test-" . int(rand() * 1_000_000) . '-' . time() . "-foo";
 ok my $bucket = $s3->add_bucket( name => $bucket_name, location => 'us-west-1' ), "created bucket '$bucket_name'";
 
 #exit;

@@ -5,12 +5,8 @@ use Moose;
 use HTTP::Request::Common;
 use HTTP::Date 'time2str';
 use MIME::Base64 qw(encode_base64);
-use URI::Escape qw(uri_escape_utf8);
 use Digest::HMAC_SHA1;
 use Digest::MD5 'md5';
-
-my $METADATA_PREFIX      = 'x-amz-meta-';
-my $AMAZON_HEADER_PREFIX = 'x-amz-';
 
 use Moose::Util::TypeConstraints qw(enum);
 use MooseX::Types::URI qw(Uri);
@@ -27,7 +23,6 @@ has 'method' => (
     required => 1,
 );
 
-## Why is this both required, and does it have a default... slight confusion
 has 'bucket_name' => (
     is       => 'ro',
     isa      => 'Str',
@@ -35,7 +30,8 @@ has 'bucket_name' => (
     lazy     => 1,
     default  => sub {
         my $s = shift;
-        if ( my ( $name ) = $s->uri->host =~ m{^(.+?)\.s3\.amazonaws} ) {
+        my $endpoint = $s->s3->endpoint;
+        if ( my ( $name ) = $s->uri->host =~ m{^(.+?)\.\Q$endpoint\E} ) {
             return $name;
         } else {
             return '';
@@ -50,18 +46,9 @@ has 'uri' => (
     coerce   => 1,
 );
 
-#has 'headers' => (
-#  is        => 'ro',
-#  isa       => 'HTTP::Headers',
-#  required  => 1,
-#  lazy      => 1,
-#  default   => sub { HTTP::Headers->new }
-#);
-
 has 'headers' => (
     is       => 'ro',
     isa      => 'ArrayRef[Str]',
-    required => 1,
     lazy     => 1,
     default  => sub { [] },
 );
@@ -69,7 +56,6 @@ has 'headers' => (
 has 'date' => (
     is       => 'ro',
     isa      => 'Str',
-    required => 1,
     default  => sub {
         time2str( time );
     }
@@ -78,7 +64,6 @@ has 'date' => (
 has 'string_to_sign' => (
     is       => 'ro',
     isa      => 'Str',
-    required => 1,
     lazy     => 1,
     default  => sub {
         my $s = shift;
@@ -99,13 +84,6 @@ has 'canonicalized_amz_headers' => (
     lazy    => 1,
     default => sub {
         my $s = shift;
-
-        # Add the x-amz-* headers if they don't already exist:
-        #    if( my $md5 = $s->content_md5 )
-        #    {
-        #      $s->headers->header( 'x-amz-content-md5' => $md5 );
-        #      $s->headers->header( 'content-md5' => $md5 );
-        #    }# end if()
 
         my @h   = @{ $s->headers };
         my %out = ();
@@ -152,7 +130,7 @@ has 'canonicalized_resource' => (
 has 'content_type' => (
     is       => 'ro',
     isa      => 'Str',
-    required => 1,
+	lazy     => 1,
     default  => sub {
         my $s = shift;
         return '' if $s->method eq 'GET';
@@ -164,10 +142,10 @@ has 'content_type' => (
 has 'content_md5' => (
     is       => 'ro',
     isa      => 'Str',
-    required => 1,
+    lazy     => 1,
     default  => sub {
         my $s = shift;
-        return '' unless my $type = $s->content;
+        return '' unless $s->content;
         return encode_base64( md5( ${ $s->content } ), '' );
     }
 );
@@ -175,13 +153,11 @@ has 'content_md5' => (
 has 'content' => (
     is       => 'ro',
     isa      => 'Maybe[ScalarRef]',
-    required => 0,
 );
 
 has 'content_length' => (
     is       => 'ro',
     isa      => 'Int',
-    required => 0,
     lazy     => 1,
     default  => sub { length( ${ shift->content } ) }
 );
@@ -189,7 +165,6 @@ has 'content_length' => (
 has 'signature' => (
     is       => 'ro',
     isa      => 'Str',
-    required => 1,
     lazy     => 1,
     default  => sub {
         my $s    = shift;
@@ -212,8 +187,4 @@ sub _trim {
     return $value;
 }    # end _trim()
 
-sub _urlencode {
-    my ( $unencoded ) = @_;
-    return uri_escape_utf8( $unencoded, '^A-Za-z0-9_-' );
-}    # end _urlencode()
 1;

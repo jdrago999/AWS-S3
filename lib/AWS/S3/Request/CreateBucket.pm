@@ -2,6 +2,8 @@
 package AWS::S3::Request::CreateBucket;
 use Moose;
 
+use AWS::S3::Signer;
+
 with 'AWS::S3::Roles::Request';
 
 has 'bucket' => (
@@ -30,7 +32,7 @@ XML
         my $signer = AWS::S3::Signer->new(
             s3           => $s->s3,
             method       => 'PUT',
-            uri          => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/',
+            uri          => $s->protocol . '://' . $s->bucket . '.' . $s->endpoint . '/',
             content_type => 'text/plain',
             content_md5  => '',
             content      => \$xml,
@@ -48,7 +50,7 @@ XML
         my $signer = AWS::S3::Signer->new(
             s3     => $s->s3,
             method => 'PUT',
-            uri    => $s->protocol . '://s3.amazonaws.com/' . $s->bucket,
+            uri    => $s->protocol . '://' . $s->endpoint . '/' . $s->bucket,
         );
         return $s->_send_request(
             $signer->method => $signer->uri => {

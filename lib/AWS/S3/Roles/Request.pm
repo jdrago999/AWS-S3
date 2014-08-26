@@ -25,6 +25,15 @@ has 'protocol' => (
     }
 );
 
+has 'endpoint' => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub {
+        shift->s3->endpoint;
+    }
+);
+
 # XXX should be required=>1; https://rt.cpan.org/Ticket/Display.html?id=77863
 has "_action" => (
     isa       => 'Str',
@@ -46,7 +55,8 @@ has '_uri' => (
         my $uri = URI->new(
             $self->protocol . '://'
             . ( $m->has_attribute('bucket') ? $self->bucket . '.' : '' )
-            . 's3.amazonaws.com/'
+            . $self->endpoint
+            . '/'
         );
 
         $uri->path( $self->key )

@@ -33,7 +33,7 @@ sub request {
         my $signer = AWS::S3::Signer->new(
             s3      => $s->s3,
             method  => 'PUT',
-            uri     => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/?acl',
+            uri     => $s->protocol . '://' . $s->bucket . '.' . $s->endpoint . '/?acl',
             headers => [ 'x-amz-acl' => $s->acl_short ]
         );
         return $s->_send_request(
@@ -48,7 +48,7 @@ sub request {
         my $signer = AWS::S3::Signer->new(
             s3             => $s->s3,
             method         => 'PUT',
-            uri            => $s->protocol . '://' . $s->bucket . '.s3.amazonaws.com/?acl',
+            uri            => $s->protocol . '://' . $s->bucket . '.' . $s->endpoint . '/?acl',
             content        => \$s->acl_xml,
             'content-type' => 'text/xml',
         );

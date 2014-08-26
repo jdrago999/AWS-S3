@@ -24,6 +24,13 @@ has 'secure' => (
     default => 0
 );
 
+has 'endpoint' => (
+    is      => 'ro',
+    isa     => 'Str',
+    lazy    => 1,
+    default => sub { 's3.amazonaws.com' },
+);
+
 has 'ua' => (
     is      => 'ro',
     isa     => 'LWP::UserAgent',
@@ -214,6 +221,12 @@ Optional.  Boolean.
 
 Default is C<0>
 
+=head2 endpoint
+
+Optional.  String.
+
+Default is C<s3.amazonaws.com>
+
 =head2 ua
 
 Optional.  Should be an instance of L<LWP::UserAgent> or a subclass of it.
@@ -233,6 +246,10 @@ String.  Read-only.
 =head2 secure
 
 Boolean.  Read-only.
+
+=head2 endpoint
+
+String.  Read-only.
 
 =head2 ua
 

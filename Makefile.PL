@@ -23,6 +23,7 @@ requires 'MIME::Base64';
 requires 'URI::Escape';
 requires 'Digest::HMAC_SHA1';
 requires 'Iterator::Paged';
+requires 'Test::Deep';
 
 resources(
   'repository'  => 'https://github.com/jdrago999/AWS-S3'
