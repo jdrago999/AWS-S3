@@ -5,49 +5,49 @@ AWS::S3 - Lightweight interface to Amazon S3 (Simple Storage Service)
 # SYNOPSIS
 
     use AWS::S3;
-    
+
     my $s3 = AWS::S3->new(
       access_key_id     => 'E654SAKIASDD64ERAF0O',
       secret_access_key => 'LgTZ25nCD+9LiCV6ujofudY1D6e2vfK0R4GLsI4H',
     );
-    
+
     # Add a bucket:
     my $bucket = $s3->add_bucket(
       name    => 'foo-bucket',
     );
-    
+
     # Set the acl:
     $bucket->acl( 'private' );
-    
+
     # Add a file:
     my $new_file = $bucket->add_file(
       key       => 'foo/bar.txt',
       contents  => \'This is the contents of the file',
     );
-    
+
     # You can also set the contents with a coderef:
     # Coderef should eturn a reference, not the actual string of content:
     $new_file = $bucket->add_file(
       key       => 'foo/bar.txt',
       contents  => sub { return \"This is the contents" }
     );
-    
+
     # Get the file:
     my $same_file = $bucket->file( 'foo/bar.txt' );
-    
+
     # Get the contents:
     my $scalar_ref = $same_file->contents;
     print $$scalar_ref;
-    
+
     # Update the contents with a scalar ref:
     $same_file->contents( \"New file contents" );
-    
+
     # Update the contents with a code ref:
     $same_file->contents( sub { return \"New file contents" } );
-    
+
     # Delete the file:
     $same_file->delete();
-    
+
     # Iterate through lots of files:
     my $iterator = $bucket->files(
       page_size   => 100,
@@ -64,17 +64,17 @@ AWS::S3 - Lightweight interface to Amazon S3 (Simple Storage Service)
         warn "\tContents: ", ${ $file->contents }, "\n";
       }# end foreach()
     }# end while()
-    
+
     # You can't delete a bucket until it's empty.
     # Empty a bucket like this:
     while( my @files = $iterator->next_page )
     {
       map { $_->delete } @files;
-      
+
       # Return to page 1:
       $iterator->page_number( 1 );
     }# end while()
-    
+
     # Now you can delete the bucket:
     $bucket->delete();
 
@@ -186,7 +186,7 @@ See [AWS::S3::Bucket](https://metacpan.org/pod/AWS::S3::Bucket) for details on h
 
 # AUTHOR
 
-John Drago <jdrago\_999@yahoo.com>
+John Drago <jdrago.999+cpan@gmail.com>
 
 # LICENSE AND COPYRIGHT
 
